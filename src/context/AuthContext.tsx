@@ -1,91 +1,37 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-interface Admin {
-  id: string
-  email: string
-  name: string
-  role: string
-}
-
-interface AuthContextType {
-  admin: Admin | null
-  token: string | null
-  isAuthenticated: boolean
-  loading: boolean
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
-}
+import { createContext, useContext, ReactNode, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useVerifyToken, useLogin, useLogout } from '@/hooks/useAuth'
+import type { Admin, LoginCredentials, AuthContextType } from '@/types/auth'
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<Admin | null>(null)
-  const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'))
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+  
+  // React Query hooks
+  const { data: admin, isLoading } = useVerifyToken()
+  const loginMutation = useLogin()
+  const logoutFn = useLogout()
 
-  useEffect(() => {
-    const verifyToken = async () => {
-      if (token) {
-        try {
-          const response = await fetch('/api/admin/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          if (response.ok) {
-            const data = await response.json()
-            setAdmin(data)
-          } else {
-            localStorage.removeItem('admin_token')
-            setToken(null)
-          }
-        } catch (error) {
-          console.error('Token verification failed:', error)
-          localStorage.removeItem('admin_token')
-          setToken(null)
-        }
-      }
-      setLoading(false)
-    }
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    await loginMutation.mutateAsync(credentials)
+  }, [loginMutation])
 
-    verifyToken()
-  }, [token])
+  const logout = useCallback(() => {
+    logoutFn()
+    navigate('/login')
+  }, [logoutFn, navigate])
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Login failed')
-    }
-
-    const data = await response.json()
-    localStorage.setItem('admin_token', data.token)
-    setToken(data.token)
-    setAdmin(data.admin)
-  }
-
-  const logout = () => {
-    localStorage.removeItem('admin_token')
-    setToken(null)
-    setAdmin(null)
+  const value: AuthContextType = {
+    admin: admin as Admin | null,
+    isAuthenticated: !!admin,
+    isLoading,
+    login,
+    logout,
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      admin, 
-      token, 
-      isAuthenticated: !!admin, 
-      loading,
-      login, 
-      logout 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,58 +1,77 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
-import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
-import FormModal from '../components/FormModal'
+import { useState, useMemo } from 'react'
+import { Plus, Pencil, Trash2, GripVertical, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import FormModal from '@/components/FormModal'
+import { useDebounce } from '@/hooks/useDebounce'
+import { 
+  useGetCategories, 
+  useCreateCategory, 
+  useUpdateCategory, 
+  useDeleteCategory 
+} from '@/hooks/useMenu'
+import type { MenuCategory, CategoryFormData } from '@/types/menu'
 
-interface MenuCategory {
-  _id: string
-  name: string
-  icon?: string
-  isActive: boolean
-  sortOrder: number
-  createdAt: string
-  updatedAt: string
-}
-
-const API_BASE = '/api/menu'
+const PAGE_SIZE_OPTIONS = [5, 7, 10, 25, 50, 100]
 
 export default function MenuCategories() {
-  const { token } = useAuth()
-  const [categories, setCategories] = useState<MenuCategory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Pagination & Filter states
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(7)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState<string>('')
+  const debouncedSearch = useDebounce(searchQuery, 300)
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   // Form states
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
     icon: '',
     sortOrder: 0,
     isActive: true,
   })
-  const [formLoading, setFormLoading] = useState(false)
 
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/categories`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error('Failed to fetch categories')
-      const data = await res.json()
-      setCategories(data.categories || [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories')
-    } finally {
-      setLoading(false)
-    }
+  // Query params
+  const queryParams = useMemo(() => ({
+    page,
+    limit: pageSize,
+    ...(debouncedSearch && { search: debouncedSearch }),
+    ...(filterStatus && { isActive: filterStatus }),
+  }), [page, pageSize, debouncedSearch, filterStatus])
+
+  // React Query hooks
+  const { data, isLoading } = useGetCategories(queryParams)
+  const createMutation = useCreateCategory()
+  const updateMutation = useUpdateCategory()
+  const deleteMutation = useDeleteCategory()
+
+  const categories = data?.categories || []
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 7, totalPages: 1 }
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    setPage(1)
   }
 
-  useEffect(() => {
-    fetchCategories()
-  }, [token])
+  const handleFilterChange = (value: string) => {
+    setFilterStatus(value)
+    setPage(1)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPage(newPage)
+    }
+  }
 
   const openCreateModal = () => {
     setEditingCategory(null)
@@ -73,49 +92,23 @@ export default function MenuCategories() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFormLoading(true)
+    setError(null)
     
     try {
-      const url = editingCategory 
-        ? `${API_BASE}/categories/${editingCategory._id}`
-        : `${API_BASE}/categories`
-      
-      const res = await fetch(url, {
-        method: editingCategory ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || 'Failed to save category')
+      if (editingCategory) {
+        await updateMutation.mutateAsync({ id: editingCategory._id, data: formData })
+      } else {
+        await createMutation.mutateAsync(formData)
       }
-      
-      await fetchCategories()
       setIsModalOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save category')
-    } finally {
-      setFormLoading(false)
     }
   }
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || 'Failed to delete category')
-      }
-      
-      await fetchCategories()
+      await deleteMutation.mutateAsync(id)
       setDeleteConfirm(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete category')
@@ -123,13 +116,7 @@ export default function MenuCategories() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    )
-  }
+  const isFormLoading = createMutation.isPending || updateMutation.isPending
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -154,68 +141,169 @@ export default function MenuCategories() {
         </div>
       )}
 
+      {/* Search and Filter Bar */}
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+
       {/* Categories Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {categories.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  No categories found. Create your first category to get started.
-                </td>
-              </tr>
-            ) : (
-              categories.map((category) => (
-                <tr key={category._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <GripVertical className="h-4 w-4" />
-                      <span className="text-sm text-gray-900">{category.sortOrder}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-2xl">{category.icon || '🍽️'}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900">{category.name}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      category.isActive 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {category.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button
-                      onClick={() => openEditModal(category)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(category._id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
+        {isLoading ? (
+          <div className="p-8 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {categories.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                      {debouncedSearch || filterStatus 
+                        ? 'No categories match your search criteria.' 
+                        : 'No categories found. Create your first category to get started.'}
+                    </td>
+                  </tr>
+                ) : (
+                  categories.map((category) => (
+                    <tr key={category._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <GripVertical className="h-4 w-4" />
+                          <span className="text-sm text-gray-900">{category.sortOrder}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-2xl">{category.icon || '🍽️'}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          category.isActive 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {category.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => openEditModal(category)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-3"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(category._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-gray-500">
+                  Showing {pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} categories
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum: number
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1
+                      } else if (pagination.page >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i
+                      } else {
+                        pageNum = pagination.page - 2 + i
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-1 rounded-lg text-sm ${
+                            pagination.page === pageNum
+                              ? 'bg-indigo-600 text-white'
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Create/Edit Modal */}
@@ -288,10 +376,10 @@ export default function MenuCategories() {
             </button>
             <button
               type="submit"
-              disabled={formLoading}
+              disabled={isFormLoading}
               className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
             >
-              {formLoading ? 'Saving...' : (editingCategory ? 'Update' : 'Create')}
+              {isFormLoading ? 'Saving...' : (editingCategory ? 'Update' : 'Create')}
             </button>
           </div>
         </form>
@@ -318,9 +406,10 @@ export default function MenuCategories() {
           </button>
           <button
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            disabled={deleteMutation.isPending}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            Delete
+            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </FormModal>

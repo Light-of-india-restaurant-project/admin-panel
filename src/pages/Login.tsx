@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { Shield, Loader2 } from 'lucide-react'
 
 export default function Login() {
@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      await login(email, password)
+      await login({ email, password })
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')

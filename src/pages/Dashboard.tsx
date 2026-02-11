@@ -1,106 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
-import { 
-  UtensilsCrossed, 
-  List, 
-  TrendingUp,
-  Eye
-} from 'lucide-react'
+import { UtensilsCrossed, List, TrendingUp, Eye } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-
-interface Stats {
-  totalCategories: number
-  totalItems: number
-  activeItems: number
-  dineInItems: number
-  takeawayItems: number
-}
-
-interface RecentItem {
-  _id: string
-  name: string
-  price: number
-  category: {
-    _id: string
-    name: string
-    icon?: string
-  }
-  menuType: string
-  isActive: boolean
-  createdAt: string
-}
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
+import { useDashboardStats } from '@/hooks/useMenu'
 
 export default function Dashboard() {
-  const { token } = useAuth()
   const navigate = useNavigate()
-  const [stats, setStats] = useState<Stats>({
-    totalCategories: 0,
-    totalItems: 0,
-    activeItems: 0,
-    dineInItems: 0,
-    takeawayItems: 0,
-  })
-  const [recentItems, setRecentItems] = useState<RecentItem[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch categories
-        const catRes = await fetch(`${API_BASE}/categories`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        
-        // Fetch items
-        const itemRes = await fetch(`${API_BASE}/items`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-
-        if (catRes.ok && itemRes.ok) {
-          const catData = await catRes.json()
-          const itemData = await itemRes.json()
-          
-          const categories = catData.categories || []
-          const items = itemData.items || []
-          
-          // Calculate stats
-          const activeItems = items.filter((i: RecentItem) => i.isActive)
-          const dineInItems = items.filter((i: RecentItem) => i.menuType === 'dine-in' || i.menuType === 'both')
-          const takeawayItems = items.filter((i: RecentItem) => i.menuType === 'takeaway' || i.menuType === 'both')
-          
-          setStats({
-            totalCategories: categories.length,
-            totalItems: items.length,
-            activeItems: activeItems.length,
-            dineInItems: dineInItems.length,
-            takeawayItems: takeawayItems.length,
-          })
-          
-          // Get recent items (last 5)
-          const sorted = [...items].sort((a: RecentItem, b: RecentItem) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
-          setRecentItems(sorted.slice(0, 5))
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [token])
-
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    )
-  }
+  const { stats, recentItems, isLoading } = useDashboardStats()
 
   const statCards = [
     { label: 'Total Categories', value: stats.totalCategories, icon: List, color: 'bg-blue-500' },
@@ -135,7 +39,7 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
         {statCards.map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
+          <div key={i} className={`bg-white rounded-xl shadow-sm p-3 sm:p-5 transition-opacity ${isLoading ? 'animate-pulse' : ''}`}>
             <div className="flex items-center gap-2 sm:gap-4">
               <div className={`${stat.color} p-2 sm:p-3 rounded-lg flex-shrink-0`}>
                 <stat.icon className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
@@ -202,7 +106,7 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
-          {recentItems.length === 0 && (
+          {recentItems.length === 0 && !isLoading && (
             <div className="p-8 text-center">
               <UtensilsCrossed className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">No menu items yet</p>
