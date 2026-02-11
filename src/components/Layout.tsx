@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Package
 } from 'lucide-react'
 
 export default function Layout() {
@@ -45,6 +46,7 @@ export default function Layout() {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/orders', icon: Package, label: 'Orders' },
     { to: '/menu-categories', icon: List, label: 'Menu Categories' },
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
   ]

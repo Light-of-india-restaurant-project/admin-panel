@@ -4,6 +4,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import MenuCategories from './pages/MenuCategories'
 import MenuItems from './pages/MenuItems'
+import Orders from './pages/Orders'
+import OrderDetail from './pages/OrderDetail'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -36,6 +38,8 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="menu-categories" element={<MenuCategories />} />
             <Route path="menu-items" element={<MenuItems />} />
           </Route>
