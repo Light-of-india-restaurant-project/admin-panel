@@ -24,6 +24,13 @@ interface OrderItem {
   quantity: number
 }
 
+interface DeliveryAddress {
+  postalCode: string
+  streetName: string
+  houseNumber: string
+  city: string
+}
+
 interface Order {
   _id: string
   orderNumber: string
@@ -40,6 +47,8 @@ interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
   pickupTime?: string
   notes?: string
+  deliveryAddress: DeliveryAddress
+  contactMobile: string
   createdAt: string
   updatedAt: string
 }
@@ -263,6 +272,11 @@ export default function Orders() {
                           {order.userId?.fullName || 'N/A'}
                         </div>
                         <div className="text-xs text-gray-500 truncate max-w-[120px]">{order.userId?.email}</div>
+                        {order.deliveryAddress?.postalCode && (
+                          <div className="text-xs text-green-600 font-medium mt-0.5">
+                            📍 {order.deliveryAddress.postalCode}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="text-sm text-gray-900">

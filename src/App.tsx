@@ -6,6 +6,7 @@ import MenuCategories from './pages/MenuCategories'
 import MenuItems from './pages/MenuItems'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
+import DeliveryZones from './pages/DeliveryZones'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="delivery-zones" element={<DeliveryZones />} />
             <Route path="menu-categories" element={<MenuCategories />} />
             <Route path="menu-items" element={<MenuItems />} />
           </Route>

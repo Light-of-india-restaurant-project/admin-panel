@@ -24,6 +24,13 @@ interface OrderItem {
   quantity: number
 }
 
+interface DeliveryAddress {
+  postalCode: string
+  streetName: string
+  houseNumber: string
+  city: string
+}
+
 interface Order {
   _id: string
   orderNumber: string
@@ -42,6 +49,8 @@ interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
   pickupTime?: string
   notes?: string
+  deliveryAddress: DeliveryAddress
+  contactMobile: string
   createdAt: string
   updatedAt: string
 }
@@ -364,6 +373,36 @@ export default function OrderDetail() {
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Delivery Address */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="px-6 py-4 border-b bg-green-50">
+              <h2 className="font-semibold text-gray-900">Delivery Address</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Package className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {order.deliveryAddress?.streetName} {order.deliveryAddress?.houseNumber}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {order.deliveryAddress?.postalCode} {order.deliveryAddress?.city}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 pt-3 border-t">
+                <Phone className="h-5 w-5 text-gray-400" />
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-medium">Contact Mobile</p>
+                  <p className="text-gray-900 font-medium">{order.contactMobile}</p>
+                </div>
+              </div>
             </div>
           </div>
 
