@@ -20,8 +20,7 @@ export interface CategoryFormData {
 export interface MenuItem {
   _id: string
   name: string
-  description: string
-  price: number
+  description: string  descriptionNl: string  price: number
   category: MenuCategory
   menuType: 'takeaway' | 'dine-in' | 'both'
   image?: string
@@ -36,6 +35,7 @@ export interface MenuItem {
 export interface ItemFormData {
   name: string
   description: string
+  descriptionNl: string
   price: number
   category: string
   menuType: 'takeaway' | 'dine-in' | 'both'

@@ -36,6 +36,7 @@ export default function MenuItems() {
   const [formData, setFormData] = useState<ItemFormData>({
     name: '',
     description: '',
+    descriptionNl: '',
     price: 0,
     category: '',
     menuType: 'both',
@@ -109,6 +110,7 @@ export default function MenuItems() {
     setFormData({
       name: '',
       description: '',
+      descriptionNl: '',
       price: 0,
       category: categories[0]?._id || '',
       menuType: 'both',
@@ -126,6 +128,7 @@ export default function MenuItems() {
     setFormData({
       name: item.name,
       description: item.description,
+      descriptionNl: item.descriptionNl || '',
       price: item.price,
       category: item.category._id,
       menuType: item.menuType,
@@ -571,7 +574,7 @@ export default function MenuItems() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *
+              Description (English) *
             </label>
             <textarea
               value={formData.description}
@@ -579,6 +582,20 @@ export default function MenuItems() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               rows={3}
               placeholder="Traditional whole wheat flatbread baked in a clay oven."
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description (Dutch) *
+            </label>
+            <textarea
+              value={formData.descriptionNl}
+              onChange={(e) => setFormData({ ...formData, descriptionNl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              rows={3}
+              placeholder="Traditioneel volkorenbrood gebakken in een klei-oven."
               required
             />
           </div>
