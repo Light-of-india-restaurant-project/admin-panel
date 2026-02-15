@@ -34,7 +34,7 @@ export default function Login() {
             <Shield className="h-8 w-8 text-indigo-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-          <p className="text-gray-500 mt-1">Nisbat Connect</p>
+          <p className="text-gray-500 mt-1">Light of India</p>
         </div>
 
         {error && (
@@ -53,7 +53,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-              placeholder="admin@nisbatconnect.com"
+              placeholder="admin@lightofindia.com"
               required
             />
           </div>

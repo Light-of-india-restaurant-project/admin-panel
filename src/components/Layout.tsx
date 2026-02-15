@@ -316,7 +316,7 @@ export default function Layout() {
           </button>
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-indigo-600" />
-            <span className="font-semibold text-gray-900">Nisbat Connect</span>
+            <span className="font-semibold text-gray-900">Light of India</span>
           </div>
         </header>
 
