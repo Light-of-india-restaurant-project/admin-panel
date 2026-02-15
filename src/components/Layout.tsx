@@ -9,11 +9,34 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   List,
   UtensilsCrossed,
   Package,
-  MapPin
+  MapPin,
+  CalendarDays,
+  Armchair,
+  Settings,
+  ClipboardList
 } from 'lucide-react'
+
+type NavItem = {
+  to: string
+  icon: React.ElementType
+  label: string
+}
+
+type NavGroup = {
+  icon: React.ElementType
+  label: string
+  children: NavItem[]
+}
+
+type NavEntry = NavItem | NavGroup
+
+function isNavGroup(item: NavEntry): item is NavGroup {
+  return 'children' in item
+}
 
 export default function Layout() {
   const { admin, logout } = useAuth()
@@ -23,6 +46,7 @@ export default function Layout() {
   // Sidebar states
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Reservations'])
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -40,18 +64,47 @@ export default function Layout() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Auto-expand group when navigating to child route
+  useEffect(() => {
+    const reservationRoutes = ['/reservations', '/tables', '/reservation-settings']
+    if (reservationRoutes.some(route => location.pathname.startsWith(route))) {
+      setExpandedGroups(prev => prev.includes('Reservations') ? prev : [...prev, 'Reservations'])
+    }
+  }, [location.pathname])
+
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
-  const navItems = [
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(label) 
+        ? prev.filter(g => g !== label)
+        : [...prev, label]
+    )
+  }
+
+  const navItems: NavEntry[] = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/orders', icon: Package, label: 'Orders' },
+    { 
+      icon: ClipboardList, 
+      label: 'Reservations',
+      children: [
+        { to: '/reservations', icon: CalendarDays, label: 'All Reservations' },
+        { to: '/tables', icon: Armchair, label: 'Tables' },
+        { to: '/reservation-settings', icon: Settings, label: 'Settings' },
+      ]
+    },
     { to: '/delivery-zones', icon: MapPin, label: 'Delivery Zones' },
     { to: '/menu-categories', icon: List, label: 'Menu Categories' },
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
   ]
+
+  const isGroupActive = (group: NavGroup) => {
+    return group.children.some(child => location.pathname.startsWith(child.to))
+  }
 
   const SidebarContent = () => (
     <>
@@ -71,23 +124,91 @@ export default function Layout() {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navItems.map(item => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.to === '/'}
-                title={isCollapsed ? item.label : undefined}
-                className={({ isActive }) =>
-                  `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-4 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-indigo-600 text-white' 
-                      : 'text-slate-300 hover:bg-slate-800'
-                  }`
-                }
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>{item.label}</span>}
-              </NavLink>
+          {navItems.map((item, index) => (
+            <li key={isNavGroup(item) ? item.label : item.to}>
+              {isNavGroup(item) ? (
+                // Group with children
+                <div>
+                  <button
+                    onClick={() => toggleGroup(item.label)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'justify-between'} px-4 py-2.5 rounded-lg transition-colors ${
+                      isGroupActive(item)
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </div>
+                    {!isCollapsed && (
+                      <ChevronDown 
+                        className={`h-4 w-4 transition-transform ${
+                          expandedGroups.includes(item.label) ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    )}
+                  </button>
+                  {!isCollapsed && expandedGroups.includes(item.label) && (
+                    <ul className="mt-1 ml-4 pl-4 border-l border-slate-700 space-y-1">
+                      {item.children.map(child => (
+                        <li key={child.to}>
+                          <NavLink
+                            to={child.to}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                isActive
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                              }`
+                            }
+                          >
+                            <child.icon className="h-4 w-4 flex-shrink-0" />
+                            <span>{child.label}</span>
+                          </NavLink>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {isCollapsed && (
+                    // Show tooltip or popover on hover when collapsed - for now just show first item
+                    <div className="hidden group-hover:block absolute left-full ml-2 bg-slate-800 rounded-lg shadow-lg p-2 min-w-[160px]">
+                      {item.children.map(child => (
+                        <NavLink
+                          key={child.to}
+                          to={child.to}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2 px-3 py-2 rounded text-sm ${
+                              isActive ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'
+                            }`
+                          }
+                        >
+                          <child.icon className="h-4 w-4" />
+                          {child.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Regular nav item
+                <NavLink
+                  to={item.to}
+                  end={item.to === '/'}
+                  title={isCollapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-4 py-2.5 rounded-lg transition-colors ${
+                      isActive 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'text-slate-300 hover:bg-slate-800'
+                    }`
+                  }
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>

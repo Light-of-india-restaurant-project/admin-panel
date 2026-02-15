@@ -7,6 +7,10 @@ import MenuItems from './pages/MenuItems'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import DeliveryZones from './pages/DeliveryZones'
+import Reservations from './pages/Reservations'
+import ReservationDetail from './pages/ReservationDetail'
+import Tables from './pages/Tables'
+import ReservationSettings from './pages/ReservationSettings'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -41,6 +45,10 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="reservations" element={<Reservations />} />
+            <Route path="reservations/:id" element={<ReservationDetail />} />
+            <Route path="tables" element={<Tables />} />
+            <Route path="reservation-settings" element={<ReservationSettings />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />
             <Route path="menu-categories" element={<MenuCategories />} />
             <Route path="menu-items" element={<MenuItems />} />
