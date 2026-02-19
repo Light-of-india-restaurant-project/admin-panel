@@ -1,8 +1,53 @@
+// Location Type
+export type LocationType = 'inside' | 'outside' | 'terrace'
+
+// Floor Types
+export interface Floor {
+  _id: string
+  name: string
+  floorNumber: number
+  locationType: LocationType
+  description?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FloorFormData {
+  name: string
+  floorNumber: number
+  locationType: LocationType
+  description?: string
+  isActive: boolean
+}
+
+// Row Types
+export interface Row {
+  _id: string
+  name: string
+  rowNumber: number
+  floor: Floor | string
+  description?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RowFormData {
+  name: string
+  rowNumber: number
+  floor: string
+  description?: string
+  isActive: boolean
+}
+
 // Table Types
 export interface Table {
   _id: string
   name: string
   capacity: number
+  floor?: Floor | string
+  row?: Row | string
   description?: string
   isActive: boolean
   createdAt: string
@@ -12,6 +57,8 @@ export interface Table {
 export interface TableFormData {
   name: string
   capacity: number
+  floor?: string
+  row?: string
   description?: string
   isActive: boolean
 }
@@ -96,9 +143,27 @@ export interface RestaurantSettingsFormData {
 }
 
 // Query Params
+export interface FloorQueryParams {
+  search?: string
+  isActive?: boolean | string
+  locationType?: LocationType | string
+  page?: number
+  limit?: number
+}
+
+export interface RowQueryParams {
+  search?: string
+  isActive?: boolean | string
+  floor?: string
+  page?: number
+  limit?: number
+}
+
 export interface TableQueryParams {
   search?: string
-  isActive?: boolean
+  isActive?: boolean | string
+  floor?: string
+  row?: string
   page?: number
   limit?: number
 }
@@ -120,6 +185,32 @@ export interface Pagination {
 }
 
 // API Responses
+export interface FloorsResponse {
+  message: string
+  success: boolean
+  data: Floor[]
+  pagination: Pagination
+}
+
+export interface SingleFloorResponse {
+  message: string
+  success: boolean
+  data: Floor
+}
+
+export interface RowsResponse {
+  message: string
+  success: boolean
+  data: Row[]
+  pagination: Pagination
+}
+
+export interface SingleRowResponse {
+  message: string
+  success: boolean
+  data: Row
+}
+
 export interface TablesResponse {
   message: string
   success: boolean

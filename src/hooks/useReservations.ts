@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { get, post, put, patch, deleteApi } from '@/api/client'
 import { QUERY_KEYS } from '@/constants/config'
 import type {
+  FloorFormData,
+  FloorQueryParams,
+  FloorsResponse,
+  SingleFloorResponse,
+  RowFormData,
+  RowQueryParams,
+  RowsResponse,
+  SingleRowResponse,
   TableFormData,
   TableQueryParams,
   TablesResponse,
@@ -15,6 +23,126 @@ import type {
   OperatingHours,
   ReservationStatus,
 } from '@/types/reservation'
+
+// ==================== FLOORS ====================
+
+// Get all floors with pagination
+export const useGetFloors = (params: FloorQueryParams = {}) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.floors, params],
+    queryFn: () => get<FloorsResponse>({ url: 'reservations/admin/floors', params: params as Record<string, unknown> }),
+  })
+
+// Get floor by ID
+export const useGetFloor = (id: string) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.floors, id],
+    queryFn: () => get<SingleFloorResponse>({ url: `reservations/admin/floors/${id}` }),
+    enabled: !!id,
+  })
+
+// Create floor
+export const useCreateFloor = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (data: FloorFormData) => 
+      post<SingleFloorResponse>({ url: 'reservations/admin/floors', body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.floors] })
+    },
+  })
+}
+
+// Update floor
+export const useUpdateFloor = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<FloorFormData> }) =>
+      patch<SingleFloorResponse>({ url: `reservations/admin/floors/${id}`, body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.floors] })
+    },
+  })
+}
+
+// Delete floor
+export const useDeleteFloor = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: string) => 
+      deleteApi<{ message: string }>({ url: `reservations/admin/floors/${id}` }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.floors] })
+    },
+  })
+}
+
+// ==================== ROWS ====================
+
+// Get all rows with pagination
+export const useGetRows = (params: RowQueryParams = {}) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.rows, params],
+    queryFn: () => get<RowsResponse>({ url: 'reservations/admin/rows', params: params as Record<string, unknown> }),
+  })
+
+// Get rows by floor
+export const useGetRowsByFloor = (floorId: string) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.rows, 'floor', floorId],
+    queryFn: () => get<RowsResponse>({ url: `reservations/admin/floors/${floorId}/rows` }),
+    enabled: !!floorId,
+  })
+
+// Get row by ID
+export const useGetRow = (id: string) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.rows, id],
+    queryFn: () => get<SingleRowResponse>({ url: `reservations/admin/rows/${id}` }),
+    enabled: !!id,
+  })
+
+// Create row
+export const useCreateRow = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (data: RowFormData) => 
+      post<SingleRowResponse>({ url: 'reservations/admin/rows', body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.rows] })
+    },
+  })
+}
+
+// Update row
+export const useUpdateRow = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<RowFormData> }) =>
+      patch<SingleRowResponse>({ url: `reservations/admin/rows/${id}`, body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.rows] })
+    },
+  })
+}
+
+// Delete row
+export const useDeleteRow = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: string) => 
+      deleteApi<{ message: string }>({ url: `reservations/admin/rows/${id}` }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.rows] })
+    },
+  })
+}
 
 // ==================== TABLES ====================
 

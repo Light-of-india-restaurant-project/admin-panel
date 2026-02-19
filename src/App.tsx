@@ -9,6 +9,8 @@ import OrderDetail from './pages/OrderDetail'
 import DeliveryZones from './pages/DeliveryZones'
 import Reservations from './pages/Reservations'
 import ReservationDetail from './pages/ReservationDetail'
+import Floors from './pages/Floors'
+import Rows from './pages/Rows'
 import Tables from './pages/Tables'
 import ReservationSettings from './pages/ReservationSettings'
 import Layout from './components/Layout'
@@ -33,7 +35,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -47,6 +49,8 @@ function App() {
             <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reservations/:id" element={<ReservationDetail />} />
+            <Route path="floors" element={<Floors />} />
+            <Route path="rows" element={<Rows />} />
             <Route path="tables" element={<Tables />} />
             <Route path="reservation-settings" element={<ReservationSettings />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />

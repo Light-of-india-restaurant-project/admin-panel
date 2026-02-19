@@ -71,7 +71,8 @@ export default function Reservations() {
     })
   }
 
-  const getTableName = (tableId: Table | string) => {
+  const getTableName = (tableId: Table | string | null) => {
+    if (!tableId) return 'No table assigned'
     if (typeof tableId === 'object') return tableId.name
     const table = tables.find(t => t._id === tableId)
     return table?.name || 'Unknown'

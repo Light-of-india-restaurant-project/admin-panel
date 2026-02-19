@@ -14,6 +14,8 @@ export const QUERY_KEYS = {
   categories: 'categories',
   items: 'items',
   dashboardStats: 'dashboardStats',
+  floors: 'floors',
+  rows: 'rows',
   tables: 'tables',
   reservations: 'reservations',
   restaurantSettings: 'restaurantSettings',

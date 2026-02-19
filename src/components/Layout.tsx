@@ -17,7 +17,9 @@ import {
   CalendarDays,
   Armchair,
   Settings,
-  ClipboardList
+  ClipboardList,
+  Building2,
+  LayoutList
 } from 'lucide-react'
 
 type NavItem = {
@@ -66,7 +68,7 @@ export default function Layout() {
 
   // Auto-expand group when navigating to child route
   useEffect(() => {
-    const reservationRoutes = ['/reservations', '/tables', '/reservation-settings']
+    const reservationRoutes = ['/reservations', '/floors', '/rows', '/tables', '/reservation-settings']
     if (reservationRoutes.some(route => location.pathname.startsWith(route))) {
       setExpandedGroups(prev => prev.includes('Reservations') ? prev : [...prev, 'Reservations'])
     }
@@ -93,6 +95,8 @@ export default function Layout() {
       label: 'Reservations',
       children: [
         { to: '/reservations', icon: CalendarDays, label: 'All Reservations' },
+        { to: '/floors', icon: Building2, label: 'Floors' },
+        { to: '/rows', icon: LayoutList, label: 'Rows' },
         { to: '/tables', icon: Armchair, label: 'Tables' },
         { to: '/reservation-settings', icon: Settings, label: 'Settings' },
       ]
@@ -124,7 +128,7 @@ export default function Layout() {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navItems.map((item, index) => (
+          {navItems.map((item) => (
             <li key={isNavGroup(item) ? item.label : item.to}>
               {isNavGroup(item) ? (
                 // Group with children

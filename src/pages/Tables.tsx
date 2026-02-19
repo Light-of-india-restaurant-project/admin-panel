@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Users, Building2, LayoutList } from 'lucide-react'
 import FormModal from '@/components/FormModal'
 import { useDebounce } from '@/hooks/useDebounce'
 import { 
   useGetTables, 
   useCreateTable, 
   useUpdateTable, 
-  useDeleteTable 
+  useDeleteTable,
+  useGetFloors,
+  useGetRows 
 } from '@/hooks/useReservations'
 import type { Table, TableFormData } from '@/types/reservation'
 
@@ -19,6 +21,8 @@ export default function Tables() {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterFloor, setFilterFloor] = useState('')
+  const [filterRow, setFilterRow] = useState('')
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -32,6 +36,8 @@ export default function Tables() {
     capacity: 2,
     description: '',
     isActive: true,
+    floor: '',
+    row: '',
   })
 
   // Query params
@@ -40,16 +46,30 @@ export default function Tables() {
     limit: pageSize,
     ...(debouncedSearch && { search: debouncedSearch }),
     ...(filterStatus && { isActive: filterStatus === 'true' }),
-  }), [page, pageSize, debouncedSearch, filterStatus])
+    ...(filterFloor && { floor: filterFloor }),
+    ...(filterRow && { row: filterRow }),
+  }), [page, pageSize, debouncedSearch, filterStatus, filterFloor, filterRow])
 
   // React Query hooks
   const { data, isLoading } = useGetTables(queryParams)
+  const { data: floorsData } = useGetFloors({ limit: 100 })
+  const { data: rowsData } = useGetRows({ limit: 100, ...(filterFloor && { floor: filterFloor }) })
   const createMutation = useCreateTable()
   const updateMutation = useUpdateTable()
   const deleteMutation = useDeleteTable()
 
   const tables = data?.data || []
+  const floors = floorsData?.data || []
+  const allRows = rowsData?.data || []
   const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 }
+  
+  // Filter rows based on selected floor in form
+  const formFloorRows = formData.floor 
+    ? allRows.filter(r => {
+        const rFloorId = typeof r.floor === 'string' ? r.floor : r.floor._id
+        return rFloorId === formData.floor
+      })
+    : allRows
 
   // Reset to page 1 when filters change
   const handleSearchChange = (value: string) => {
@@ -75,6 +95,8 @@ export default function Tables() {
       capacity: 2,
       description: '',
       isActive: true,
+      floor: '',
+      row: '',
     })
     setIsModalOpen(true)
   }
@@ -86,6 +108,8 @@ export default function Tables() {
       capacity: table.capacity,
       description: table.description || '',
       isActive: table.isActive,
+      floor: table.floor ? (typeof table.floor === 'string' ? table.floor : table.floor._id) : '',
+      row: table.row ? (typeof table.row === 'string' ? table.row : table.row._id) : '',
     })
     setIsModalOpen(true)
   }
@@ -98,6 +122,8 @@ export default function Tables() {
       ...formData,
       capacity: Number(formData.capacity),
       description: formData.description || undefined,
+      floor: formData.floor || undefined,
+      row: formData.row || undefined,
     }
     
     try {
@@ -110,6 +136,28 @@ export default function Tables() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save table')
     }
+  }
+
+  const handleFloorChange = (floorId: string) => {
+    setFormData({ ...formData, floor: floorId, row: '' })
+  }
+
+  const getFloorName = (floor: Table['floor']) => {
+    if (!floor) return '-'
+    if (typeof floor === 'string') {
+      const found = floors.find(f => f._id === floor)
+      return found?.name || 'Unknown'
+    }
+    return floor.name
+  }
+
+  const getRowName = (row: Table['row']) => {
+    if (!row) return '-'
+    if (typeof row === 'string') {
+      const found = allRows.find(r => r._id === row)
+      return found?.name || 'Unknown'
+    }
+    return row.name
   }
 
   const handleDelete = async (id: string) => {
@@ -161,6 +209,31 @@ export default function Tables() {
             />
           </div>
           <select
+            value={filterFloor}
+            onChange={(e) => { setFilterFloor(e.target.value); setFilterRow(''); setPage(1); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">All Floors</option>
+            {floors.map(floor => (
+              <option key={floor._id} value={floor._id}>{floor.name}</option>
+            ))}
+          </select>
+          <select
+            value={filterRow}
+            onChange={(e) => { setFilterRow(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            disabled={!filterFloor}
+          >
+            <option value="">All Rows</option>
+            {allRows.filter(r => {
+              if (!filterFloor) return true
+              const rFloorId = typeof r.floor === 'string' ? r.floor : r.floor._id
+              return rFloorId === filterFloor
+            }).map(row => (
+              <option key={row._id} value={row._id}>{row.name}</option>
+            ))}
+          </select>
+          <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -187,6 +260,8 @@ export default function Tables() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Table</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Floor</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -208,6 +283,26 @@ export default function Tables() {
                         <Users className="w-4 h-4" />
                         {table.capacity} {table.capacity === 1 ? 'seat' : 'seats'}
                       </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      {table.floor ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {getFloorName(table.floor)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      {table.row ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                          <LayoutList className="w-4 h-4 text-gray-400" />
+                          {getRowName(table.row)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-gray-500 max-w-xs truncate">
                       {table.description || '-'}
@@ -320,6 +415,42 @@ export default function Tables() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
             <p className="mt-1 text-xs text-gray-500">Maximum guests that can sit at this table (1-20)</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Floor
+            </label>
+            <select
+              value={formData.floor || ''}
+              onChange={(e) => handleFloorChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">No floor assigned</option>
+              {floors.map(floor => (
+                <option key={floor._id} value={floor._id}>{floor.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Row
+            </label>
+            <select
+              value={formData.row || ''}
+              onChange={(e) => setFormData({ ...formData, row: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={!formData.floor}
+            >
+              <option value="">No row assigned</option>
+              {formFloorRows.map(row => (
+                <option key={row._id} value={row._id}>{row.name}</option>
+              ))}
+            </select>
+            {!formData.floor && (
+              <p className="mt-1 text-xs text-gray-500">Select a floor first to choose a row</p>
+            )}
           </div>
 
           <div>
