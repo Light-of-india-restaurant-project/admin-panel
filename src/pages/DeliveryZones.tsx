@@ -15,8 +15,7 @@ import { get, post, patch, deleteApi } from '../api/client'
 interface DeliveryZone {
   _id: string
   name: string
-  postalCodeStart: number
-  postalCodeEnd: number
+  postalCode: string
   isActive: boolean
   description?: string
   createdAt: string
@@ -32,16 +31,14 @@ interface DeliveryZonesResponse {
 
 interface FormData {
   name: string
-  postalCodeStart: number | string
-  postalCodeEnd: number | string
+  postalCode: string
   description: string
   isActive: boolean
 }
 
 const initialFormData: FormData = {
   name: '',
-  postalCodeStart: '',
-  postalCodeEnd: '',
+  postalCode: '',
   description: '',
   isActive: true,
 }
@@ -94,8 +91,7 @@ export default function DeliveryZones() {
     const searchLower = search.toLowerCase()
     return (
       zone.name.toLowerCase().includes(searchLower) ||
-      zone.postalCodeStart.toString().includes(search) ||
-      zone.postalCodeEnd.toString().includes(search) ||
+      zone.postalCode.includes(search) ||
       zone.description?.toLowerCase().includes(searchLower)
     )
   })
@@ -111,8 +107,7 @@ export default function DeliveryZones() {
     setEditingZone(zone)
     setFormData({
       name: zone.name,
-      postalCodeStart: zone.postalCodeStart,
-      postalCodeEnd: zone.postalCodeEnd,
+      postalCode: zone.postalCode,
       description: zone.description || '',
       isActive: zone.isActive,
     })
@@ -130,21 +125,8 @@ export default function DeliveryZones() {
       return
     }
     
-    const start = Number(formData.postalCodeStart)
-    const end = Number(formData.postalCodeEnd)
-    
-    if (isNaN(start) || start < 1000 || start > 9999) {
-      setFormError('Start postal code must be between 1000 and 9999')
-      return
-    }
-    
-    if (isNaN(end) || end < 1000 || end > 9999) {
-      setFormError('End postal code must be between 1000 and 9999')
-      return
-    }
-    
-    if (end < start) {
-      setFormError('End postal code must be greater than or equal to start postal code')
+    if (!/^[0-9]{4}$/.test(formData.postalCode)) {
+      setFormError('Postal code must be exactly 4 digits')
       return
     }
 
@@ -153,8 +135,7 @@ export default function DeliveryZones() {
     try {
       const payload = {
         name: formData.name.trim(),
-        postalCodeStart: start,
-        postalCodeEnd: end,
+        postalCode: formData.postalCode,
         description: formData.description.trim() || undefined,
         isActive: formData.isActive,
       }
@@ -213,7 +194,7 @@ export default function DeliveryZones() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Delivery Zones</h1>
-          <p className="text-gray-500 mt-1">Manage postal code ranges for delivery areas</p>
+          <p className="text-gray-500 mt-1">Manage postal codes for delivery areas</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -292,7 +273,7 @@ export default function DeliveryZones() {
                     Zone Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Postal Code Range
+                    Postal Code
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
@@ -317,15 +298,9 @@ export default function DeliveryZones() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
-                          {zone.postalCodeStart}
-                        </span>
-                        <span className="text-gray-400">→</span>
-                        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
-                          {zone.postalCodeEnd}
-                        </span>
-                      </div>
+                      <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+                        {zone.postalCode}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-gray-500 text-sm max-w-xs truncate block">
@@ -422,40 +397,22 @@ export default function DeliveryZones() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Postal Code *
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.postalCodeStart}
-                      onChange={(e) => setFormData({ ...formData, postalCodeStart: e.target.value })}
-                      placeholder="3000"
-                      min={1000}
-                      max={9999}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Postal Code *
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.postalCodeEnd}
-                      onChange={(e) => setFormData({ ...formData, postalCodeEnd: e.target.value })}
-                      placeholder="3199"
-                      min={1000}
-                      max={9999}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Postal Code (4 digits) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    placeholder="3011"
+                    maxLength={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the 4-digit postal code prefix (e.g., 3011 for all addresses like 3011 AA, 3011 AB, etc.)
+                  </p>
                 </div>
-
-                <p className="text-xs text-gray-500">
-                  This will allow all postal codes from {formData.postalCodeStart || '____'} to {formData.postalCodeEnd || '____'} (e.g., {formData.postalCodeStart || '3000'} AA through {formData.postalCodeEnd || '3199'} ZZ)
-                </p>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
