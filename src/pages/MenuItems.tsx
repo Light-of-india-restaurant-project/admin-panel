@@ -43,6 +43,7 @@ export default function MenuItems() {
     image: '',
     isVegetarian: false,
     isSpicy: false,
+    isDoubleSpicy: false,
     isActive: true,
     sortOrder: 0,
   })
@@ -117,6 +118,7 @@ export default function MenuItems() {
       image: '',
       isVegetarian: false,
       isSpicy: false,
+      isDoubleSpicy: false,
       isActive: true,
       sortOrder: 0,
     })
@@ -135,6 +137,7 @@ export default function MenuItems() {
       image: item.image || '',
       isVegetarian: item.isVegetarian,
       isSpicy: item.isSpicy,
+      isDoubleSpicy: item.isDoubleSpicy,
       isActive: item.isActive,
       sortOrder: item.sortOrder,
     })
@@ -397,6 +400,11 @@ export default function MenuItems() {
                                 🌶️ Spicy
                               </span>
                             )}
+                            {item.isDoubleSpicy && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                🔥 Double Spicy
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -650,6 +658,19 @@ export default function MenuItems() {
               />
               <label htmlFor="isSpicy" className="ml-2 block text-sm text-gray-700">
                 🌶️ Spicy
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isDoubleSpicy"
+                checked={formData.isDoubleSpicy}
+                onChange={(e) => setFormData({ ...formData, isDoubleSpicy: e.target.checked })}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isDoubleSpicy" className="ml-2 block text-sm text-gray-700">
+                🔥 Double Spicy
               </label>
             </div>
             

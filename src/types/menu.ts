@@ -28,6 +28,7 @@ export interface MenuItem {
   image?: string
   isVegetarian: boolean
   isSpicy: boolean
+  isDoubleSpicy: boolean
   isActive: boolean
   sortOrder: number
   createdAt: string
@@ -44,6 +45,7 @@ export interface ItemFormData {
   image?: string
   isVegetarian: boolean
   isSpicy: boolean
+  isDoubleSpicy: boolean
   isActive: boolean
   sortOrder: number
 }
