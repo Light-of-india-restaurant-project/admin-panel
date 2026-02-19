@@ -22,13 +22,30 @@ export function useVerifyToken() {
           name: data.name,
           role: data.role,
         }
-      } catch {
-        // Token invalid or expired
-        removeCookie(AUTH_CONFIG.accessTokenKey)
-        return null
+      } catch (error) {
+        // Only remove cookie on actual auth failure (401/403), not network errors
+        const isAuthError = error instanceof Error && 
+          (error.message.includes('401') || 
+           error.message.includes('403') || 
+           error.message.includes('Unauthorized') ||
+           error.message.includes('Invalid token'))
+        
+        if (isAuthError) {
+          removeCookie(AUTH_CONFIG.accessTokenKey)
+          return null
+        }
+        
+        // For network errors, throw to trigger retry/error state but keep session
+        throw error
       }
     },
-    retry: false,
+    retry: (failureCount, error) => {
+      // Don't retry auth failures, but retry network errors up to 3 times
+      const isAuthError = error instanceof Error && 
+        (error.message.includes('401') || error.message.includes('403'))
+      return !isAuthError && failureCount < 3
+    },
+    retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
