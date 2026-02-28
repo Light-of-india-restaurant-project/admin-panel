@@ -29,6 +29,7 @@ export interface VerifyTokenResponse {
 // Auth Context Types
 export interface AuthContextType {
   admin: Admin | null
+  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (credentials: LoginCredentials) => Promise<void>

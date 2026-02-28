@@ -29,8 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasToken = !!getCookie(AUTH_CONFIG.accessTokenKey)
   const isAuthenticated = !!admin || (isError && hasToken)
 
+  const token = getCookie(AUTH_CONFIG.accessTokenKey) || null
+
   const value: AuthContextType = {
     admin: admin as Admin | null,
+    token,
     isAuthenticated,
     isLoading,
     login,
