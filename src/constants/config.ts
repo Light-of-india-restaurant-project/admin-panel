@@ -1,5 +1,5 @@
-// API Base URL - uses Vite proxy in development
-export const API_BASE_URL = '/api'
+// API Base URL - uses Vite proxy in development, env override in production
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 // Auth Cookie Configuration
 export const AUTH_CONFIG = {
