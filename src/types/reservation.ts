@@ -124,6 +124,7 @@ export interface OperatingHours {
 export interface RestaurantSettings {
   _id: string
   operatingHours: OperatingHours[]
+  closedDates: string[]
   reservationDuration: number
   slotInterval: number
   maxAdvanceDays: number
@@ -257,4 +258,35 @@ export interface AvailableSlotsResponse {
   message: string
   success: boolean
   data: AvailableSlot[]
+}
+
+// Simple Reservation Types
+export type SimpleReservationStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+
+export interface SimpleReservation {
+  _id: string
+  name: string
+  email: string
+  contactNumber: string
+  numberOfGuests: number
+  reservationDate: string
+  status: SimpleReservationStatus
+  rejectionReason?: string
+  cancellationReason?: string
+  adminNote?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SimpleReservationResponse {
+  message: string
+  success: boolean
+  data: SimpleReservation[]
+  total: number
+}
+
+export interface SingleSimpleReservationResponse {
+  message: string
+  success: boolean
+  data: SimpleReservation
 }

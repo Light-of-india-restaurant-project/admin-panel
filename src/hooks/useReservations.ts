@@ -22,6 +22,9 @@ import type {
   RestaurantSettingsResponse,
   OperatingHours,
   ReservationStatus,
+  SimpleReservationStatus,
+  SimpleReservationResponse,
+  SingleSimpleReservationResponse,
 } from '@/types/reservation'
 
 // ==================== FLOORS ====================
@@ -358,6 +361,112 @@ export const useUpdateReservationSettings = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.restaurantSettings] })
+    },
+  })
+}
+
+// Update closed dates only
+export const useUpdateClosedDates = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (closedDates: string[]) =>
+      patch<RestaurantSettingsResponse>({ 
+        url: 'reservations/admin/settings/closed-dates', 
+        body: { closedDates } 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.restaurantSettings] })
+    },
+  })
+}
+
+// ==================== SIMPLE RESERVATIONS ====================
+
+// Query params type for simple reservations
+interface SimpleReservationQueryParams {
+  status?: SimpleReservationStatus
+  startDate?: string
+  endDate?: string
+  skip?: number
+  limit?: number
+}
+
+// Get all simple reservations
+export const useGetSimpleReservations = (params: SimpleReservationQueryParams = {}) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.simpleReservations, params],
+    queryFn: () => get<SimpleReservationResponse>({ 
+      url: 'reservations/admin/simple', 
+      params: params as Record<string, unknown> 
+    }),
+  })
+
+// Get simple reservation by ID
+export const useGetSimpleReservation = (id: string) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.simpleReservations, id],
+    queryFn: () => get<SingleSimpleReservationResponse>({ url: `reservations/admin/simple/${id}` }),
+    enabled: !!id,
+  })
+
+// Accept simple reservation
+export const useAcceptSimpleReservation = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, adminNote }: { id: string; adminNote?: string }) =>
+      post<SingleSimpleReservationResponse>({ 
+        url: `reservations/admin/simple/${id}/accept`, 
+        body: { adminNote } 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.simpleReservations] })
+    },
+  })
+}
+
+// Reject simple reservation
+export const useRejectSimpleReservation = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, rejectionReason, adminNote }: { id: string; rejectionReason: string; adminNote?: string }) =>
+      post<SingleSimpleReservationResponse>({ 
+        url: `reservations/admin/simple/${id}/reject`, 
+        body: { rejectionReason, adminNote } 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.simpleReservations] })
+    },
+  })
+}
+
+// Cancel simple reservation
+export const useCancelSimpleReservation = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, cancellationReason, adminNote }: { id: string; cancellationReason: string; adminNote?: string }) =>
+      post<SingleSimpleReservationResponse>({ 
+        url: `reservations/admin/simple/${id}/cancel`, 
+        body: { cancellationReason, adminNote } 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.simpleReservations] })
+    },
+  })
+}
+
+// Delete simple reservation
+export const useDeleteSimpleReservation = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: string) => 
+      deleteApi<{ message: string }>({ url: `reservations/admin/simple/${id}` }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.simpleReservations] })
     },
   })
 }

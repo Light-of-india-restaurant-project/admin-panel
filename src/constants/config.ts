@@ -18,5 +18,6 @@ export const QUERY_KEYS = {
   rows: 'rows',
   tables: 'tables',
   reservations: 'reservations',
+  simpleReservations: 'simpleReservations',
   restaurantSettings: 'restaurantSettings',
 } as const

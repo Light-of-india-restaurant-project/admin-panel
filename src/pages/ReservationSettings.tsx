@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
-import { Clock, Calendar, Users, Save } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Clock, Calendar, Save, CalendarX } from 'lucide-react'
 import {
   useGetRestaurantSettings,
   useUpdateOperatingHours,
   useUpdateReservationSettings,
+  useUpdateClosedDates,
 } from '@/hooks/useReservations'
 import type { OperatingHours, DayOfWeek } from '@/types/reservation'
 
@@ -17,31 +18,13 @@ const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
   { value: 'saturday', label: 'Saturday' },
 ]
 
-const SLOT_INTERVALS = [
-  { value: 15, label: '15 minutes' },
-  { value: 30, label: '30 minutes' },
-  { value: 45, label: '45 minutes' },
-  { value: 60, label: '1 hour' },
-  { value: 90, label: '1.5 hours' },
-  { value: 120, label: '2 hours' },
-  { value: 180, label: '3 hours' },
-]
-
-const DURATION_OPTIONS = [
-  { value: 30, label: '30 minutes' },
-  { value: 45, label: '45 minutes' },
-  { value: 60, label: '1 hour' },
-  { value: 90, label: '1.5 hours' },
-  { value: 120, label: '2 hours' },
-  { value: 150, label: '2.5 hours' },
-  { value: 180, label: '3 hours' },
-  { value: 240, label: '4 hours' },
-]
+const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
 
 export default function ReservationSettings() {
   const { data, isLoading } = useGetRestaurantSettings()
   const updateHoursMutation = useUpdateOperatingHours()
   const updateSettingsMutation = useUpdateReservationSettings()
+  const updateClosedDatesMutation = useUpdateClosedDates()
 
   const [operatingHours, setOperatingHours] = useState<OperatingHours[]>([])
   const [reservationDuration, setReservationDuration] = useState<number | null>(null)
@@ -49,6 +32,7 @@ export default function ReservationSettings() {
   const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null)
   const [maxGuests, setMaxGuests] = useState<number | null>(null)
   const [minGuests, setMinGuests] = useState<number | null>(null)
+  const [closedDates, setClosedDates] = useState<string[]>([])
   
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -65,14 +49,52 @@ export default function ReservationSettings() {
       setMaxAdvanceDays(data.data.maxAdvanceDays)
       setMaxGuests(data.data.maxGuestsPerReservation)
       setMinGuests(data.data.minGuestsPerReservation)
+      // Convert dates to ISO strings for comparison
+      setClosedDates((data.data.closedDates || []).map((d: string | Date) => 
+        new Date(d).toISOString().split('T')[0]
+      ))
       setIsDataLoaded(true)
     }
   }, [data])
+
+  // Generate all dates within maxAdvanceDays
+  const allDates = useMemo(() => {
+    if (!maxAdvanceDays || !operatingHours.length) return []
+    
+    const dates: { date: Date; dateStr: string; dayName: string; isOpenByWeek: boolean }[] = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    for (let i = 0; i < maxAdvanceDays; i++) {
+      const date = new Date(today)
+      date.setDate(date.getDate() + i)
+      const dayIndex = date.getDay()
+      const dayName = DAY_NAMES[dayIndex]
+      const operatingHour = operatingHours.find(h => h.day === dayName)
+      
+      dates.push({
+        date,
+        dateStr: date.toISOString().split('T')[0],
+        dayName,
+        isOpenByWeek: operatingHour?.isOpen ?? false,
+      })
+    }
+    
+    return dates
+  }, [maxAdvanceDays, operatingHours])
 
   const handleHoursChange = (day: DayOfWeek, field: keyof OperatingHours, value: string | boolean) => {
     setOperatingHours(prev => prev.map(h => 
       h.day === day ? { ...h, [field]: value } : h
     ))
+  }
+
+  const handleToggleClosedDate = (dateStr: string) => {
+    setClosedDates(prev => 
+      prev.includes(dateStr) 
+        ? prev.filter(d => d !== dateStr)
+        : [...prev, dateStr]
+    )
   }
 
   const handleSaveHours = async () => {
@@ -91,25 +113,45 @@ export default function ReservationSettings() {
     setError(null)
     setSuccessMessage(null)
     
-    if (reservationDuration === null || slotInterval === null || maxAdvanceDays === null || 
-        maxGuests === null || minGuests === null) {
+    if (maxAdvanceDays === null) {
       setError('Please fill in all fields')
       return
     }
     
     try {
       await updateSettingsMutation.mutateAsync({
-        reservationDuration,
-        slotInterval,
+        reservationDuration: reservationDuration ?? 60,
+        slotInterval: slotInterval ?? 30,
         maxAdvanceDays,
-        maxGuestsPerReservation: maxGuests,
-        minGuestsPerReservation: minGuests,
+        maxGuestsPerReservation: maxGuests ?? 10,
+        minGuestsPerReservation: minGuests ?? 1,
       })
       setSuccessMessage('Reservation settings saved successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
     }
+  }
+
+  const handleSaveClosedDates = async () => {
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      await updateClosedDatesMutation.mutateAsync(closedDates)
+      setSuccessMessage('Closed dates saved successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save closed dates')
+    }
+  }
+
+  // Format date for display
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    })
   }
 
   if (isLoading || !isDataLoaded) {
@@ -140,14 +182,49 @@ export default function ReservationSettings() {
         </div>
       )}
 
+      {/* Reservation Settings Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Booking Window</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Set how far in advance customers can make reservations.
+        </p>
+
+        <div className="max-w-xs">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Max Advance Booking (days)
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={maxAdvanceDays ?? ''}
+            onChange={(e) => setMaxAdvanceDays(Number(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">How far ahead customers can book</p>
+        </div>
+
+        <button
+          onClick={handleSaveSettings}
+          disabled={updateSettingsMutation.isPending}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          {updateSettingsMutation.isPending ? 'Saving...' : 'Save Booking Window'}
+        </button>
+      </div>
+
       {/* Operating Hours Section */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Operating Hours</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Weekly Operating Hours</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Set the opening and closing times for each day of the week. These times determine when reservations can be made.
+          Set the regular opening days and times for each day of the week.
         </p>
 
         <div className="space-y-3">
@@ -212,104 +289,77 @@ export default function ReservationSettings() {
         </button>
       </div>
 
-      {/* Reservation Settings Section */}
+      {/* Specific Closed Dates Section */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Reservation Rules</h2>
+          <CalendarX className="w-5 h-5 text-red-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Manage Specific Dates</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Configure how reservations work - duration, time slots, and guest limits.
+          Click on any date to mark it as closed (holidays, special events, etc.). 
+          Dates already closed by weekly schedule are shown in gray.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reservation Duration
-            </label>
-            <select
-              value={reservationDuration ?? ''}
-              onChange={(e) => setReservationDuration(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {DURATION_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">How long each reservation blocks a table</p>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {allDates.map(({ date, dateStr, dayName, isOpenByWeek }) => {
+            const isClosedSpecifically = closedDates.includes(dateStr)
+            const finalIsOpen = isOpenByWeek && !isClosedSpecifically
+            
+            return (
+              <button
+                key={dateStr}
+                onClick={() => isOpenByWeek && handleToggleClosedDate(dateStr)}
+                disabled={!isOpenByWeek}
+                className={`p-2 rounded-lg text-sm text-left transition-all ${
+                  !isOpenByWeek 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : isClosedSpecifically
+                    ? 'bg-red-100 border-2 border-red-300 text-red-800 hover:bg-red-200'
+                    : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'
+                }`}
+                title={
+                  !isOpenByWeek 
+                    ? `Closed on ${dayName}s (weekly schedule)` 
+                    : isClosedSpecifically 
+                    ? 'Click to re-open this date'
+                    : 'Click to close this date'
+                }
+              >
+                <div className="font-medium">{formatDate(date)}</div>
+                <div className="text-xs mt-0.5">
+                  {!isOpenByWeek 
+                    ? 'Weekly closed' 
+                    : isClosedSpecifically 
+                    ? 'Closed' 
+                    : finalIsOpen ? 'Open' : 'Closed'}
+                </div>
+              </button>
+            )
+          })}
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Time Slot Interval
-            </label>
-            <select
-              value={slotInterval ?? ''}
-              onChange={(e) => setSlotInterval(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {SLOT_INTERVALS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">Gap between available booking times</p>
+        <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
+            <span>Open</span>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Max Advance Booking (days)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={maxAdvanceDays ?? ''}
-              onChange={(e) => setMaxAdvanceDays(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">How far ahead customers can book</p>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+            <span>Closed (specific)</span>
           </div>
-
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Users className="w-4 h-4 inline mr-1" />
-              Guest Limits
-            </label>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">Minimum</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={minGuests ?? ''}
-                  onChange={(e) => setMinGuests(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-gray-500">Maximum</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={maxGuests ?? ''}
-                  onChange={(e) => setMaxGuests(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">Min/max guests allowed per reservation</p>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gray-100 rounded"></div>
+            <span>Closed (weekly)</span>
           </div>
         </div>
 
         <button
-          onClick={handleSaveSettings}
-          disabled={updateSettingsMutation.isPending}
-          className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          onClick={handleSaveClosedDates}
+          disabled={updateClosedDatesMutation.isPending}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {updateSettingsMutation.isPending ? 'Saving...' : 'Save Reservation Settings'}
+          {updateClosedDatesMutation.isPending ? 'Saving...' : 'Save Closed Dates'}
         </button>
       </div>
     </div>

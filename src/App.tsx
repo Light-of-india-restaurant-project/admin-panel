@@ -9,6 +9,8 @@ import OrderDetail from './pages/OrderDetail'
 import DeliveryZones from './pages/DeliveryZones'
 import Reservations from './pages/Reservations'
 import ReservationDetail from './pages/ReservationDetail'
+import SimpleReservations from './pages/SimpleReservations'
+import SimpleReservationDetail from './pages/SimpleReservationDetail'
 import Floors from './pages/Floors'
 import Rows from './pages/Rows'
 import Tables from './pages/Tables'
@@ -47,6 +49,8 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="simple-reservations" element={<SimpleReservations />} />
+            <Route path="simple-reservations/:id" element={<SimpleReservationDetail />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reservations/:id" element={<ReservationDetail />} />
             <Route path="floors" element={<Floors />} />
