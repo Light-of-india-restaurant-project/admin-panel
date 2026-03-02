@@ -72,7 +72,7 @@ export default function FormModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="relative w-full max-w-md bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-hidden"
+        className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl max-h-[90vh] flex flex-col"
       >
         {/* Close button */}
         <button
@@ -83,8 +83,8 @@ export default function FormModal({
           <X className="h-5 w-5" />
         </button>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - scrollable */}
+        <div className="p-6 overflow-y-auto flex-1">
           {/* Title */}
           <h2 id="modal-title" className="text-xl font-semibold text-gray-900 pr-8 mb-4">
             {title}

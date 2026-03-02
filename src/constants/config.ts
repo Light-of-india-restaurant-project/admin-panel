@@ -13,6 +13,7 @@ export const QUERY_KEYS = {
   admin: 'admin',
   categories: 'categories',
   items: 'items',
+  gallery: 'gallery',
   dashboardStats: 'dashboardStats',
   floors: 'floors',
   rows: 'rows',
