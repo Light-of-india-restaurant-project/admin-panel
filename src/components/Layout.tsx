@@ -100,6 +100,7 @@ export default function Layout() {
     { to: '/menu-categories', icon: List, label: 'Menu Categories' },
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
     { to: '/gallery', icon: Image, label: 'Gallery' },
+    { to: '/catering-packs', icon: Package, label: 'Catering Packs' },
   ]
 
   const isGroupActive = (group: NavGroup) => {

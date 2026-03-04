@@ -24,6 +24,14 @@ interface OrderItem {
   quantity: number
 }
 
+interface CateringOrderItem {
+  packId: string
+  name: string
+  pricePerPerson: number
+  peopleCount: number
+  quantity: number
+}
+
 interface DeliveryAddress {
   postalCode: string
   streetName: string
@@ -43,6 +51,7 @@ interface Order {
     postalCode?: string
   }
   items: OrderItem[]
+  cateringItems?: CateringOrderItem[]
   subtotal: number
   tax: number
   total: number
@@ -300,9 +309,10 @@ export default function OrderDetail() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="px-6 py-4 border-b bg-gray-50">
-              <h2 className="font-semibold text-gray-900">Order Items ({order.items.length})</h2>
+              <h2 className="font-semibold text-gray-900">Order Items ({order.items.length + (order.cateringItems?.length || 0)})</h2>
             </div>
             <div className="divide-y">
+              {/* Menu Items */}
               {order.items.map((item, idx) => (
                 <div key={idx} className="px-6 py-4 flex justify-between items-center">
                   <div className="flex items-center gap-4">
@@ -315,6 +325,25 @@ export default function OrderDetail() {
                     </div>
                   </div>
                   <p className="font-semibold text-gray-900 text-lg">€{(item.price * item.quantity).toFixed(2)}</p>
+                </div>
+              ))}
+              
+              {/* Catering Packs */}
+              {order.cateringItems && order.cateringItems.length > 0 && order.cateringItems.map((item, idx) => (
+                <div key={`catering-${idx}`} className="px-6 py-4 flex justify-between items-center bg-amber-50/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 font-bold text-lg">
+                      {item.quantity}x
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{item.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.peopleCount} people × €{item.pricePerPerson.toFixed(2)}/person
+                      </p>
+                      <span className="inline-block mt-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Catering Pack</span>
+                    </div>
+                  </div>
+                  <p className="font-semibold text-gray-900 text-lg">€{(item.pricePerPerson * item.peopleCount * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
             </div>

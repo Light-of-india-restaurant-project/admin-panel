@@ -17,10 +17,20 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
 interface OrderItem {
   menuItemId: string
   name: string
   price: number
+  quantity: number
+}
+
+interface CateringOrderItem {
+  packId: string
+  name: string
+  pricePerPerson: number
+  peopleCount: number
   quantity: number
 }
 
@@ -41,6 +51,7 @@ interface Order {
     mobile?: string
   }
   items: OrderItem[]
+  cateringItems?: CateringOrderItem[]
   subtotal: number
   tax: number
   total: number
@@ -101,7 +112,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const [limit] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -111,7 +122,7 @@ export default function Orders() {
     try {
       const params: Record<string, unknown> = {
         page,
-        limit,
+        limit: pageSize,
       }
       if (statusFilter !== 'all') {
         params.status = statusFilter
@@ -130,7 +141,7 @@ export default function Orders() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [page, limit, statusFilter])
+  }, [page, pageSize, statusFilter])
 
   useEffect(() => {
     fetchOrders()
@@ -149,7 +160,18 @@ export default function Orders() {
     fetchOrders()
   }
 
-  const totalPages = Math.ceil(total / limit)
+  const totalPages = Math.ceil(total / pageSize)
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage)
+    }
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1) // Reset to first page when changing page size
+  }
 
   const filteredOrders = orders.filter(order => {
     if (!search) return true
@@ -280,10 +302,16 @@ export default function Orders() {
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="text-sm text-gray-900">
-                          {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                          {order.items.length + (order.cateringItems?.length || 0)} item{(order.items.length + (order.cateringItems?.length || 0)) > 1 ? 's' : ''}
+                          {order.cateringItems && order.cateringItems.length > 0 && (
+                            <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">+Catering</span>
+                          )}
                         </div>
                         <div className="text-xs text-gray-500 max-w-[150px] truncate">
-                          {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                          {[
+                            ...order.items.map(i => `${i.quantity}x ${i.name}`),
+                            ...(order.cateringItems || []).map(i => `${i.quantity}x ${i.name}`)
+                          ].join(', ')}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -319,30 +347,70 @@ export default function Orders() {
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} orders
+        {total > 0 && (
+          <div className="px-6 py-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="text-sm text-gray-500">
+                Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, total)} of {total} orders
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="px-3 py-1 text-sm">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg border hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (page <= 3) {
+                      pageNum = i + 1
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = page - 2 + i
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 rounded-lg text-sm ${
+                          page === pageNum
+                            ? 'bg-indigo-600 text-white'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
