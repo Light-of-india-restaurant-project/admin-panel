@@ -18,6 +18,7 @@ import {
   Settings,
   ClipboardList,
   Image,
+  Tag,
 } from 'lucide-react'
 
 type NavItem = {
@@ -101,6 +102,7 @@ export default function Layout() {
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
     { to: '/gallery', icon: Image, label: 'Gallery' },
     { to: '/catering-packs', icon: Package, label: 'Catering Packs' },
+    { to: '/offers', icon: Tag, label: 'Special Offers' },
   ]
 
   const isGroupActive = (group: NavGroup) => {

@@ -21,4 +21,5 @@ export const QUERY_KEYS = {
   reservations: 'reservations',
   simpleReservations: 'simpleReservations',
   restaurantSettings: 'restaurantSettings',
+  offers: 'offers',
 } as const
