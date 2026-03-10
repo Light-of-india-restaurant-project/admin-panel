@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: abishekshah4444/light-of-india-admin
+  IMAGE_NAME: light-of-india-restaurant-project/admin
 
 jobs:
   build-and-push:
@@ -67,7 +67,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "
             echo '$GHCR_TOKEN' | docker login ghcr.io -u abishekshah4444 --password-stdin
             cd /var/www/light-of-india
-            docker pull ghcr.io/abishekshah4444/light-of-india-admin:latest
+            docker pull ghcr.io/light-of-india-restaurant-project/admin:latest
             docker-compose up -d admin
             docker image prune -f
           "
