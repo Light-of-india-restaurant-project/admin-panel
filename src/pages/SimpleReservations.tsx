@@ -330,6 +330,9 @@ export default function SimpleReservations() {
                           <div className="flex items-center gap-2 text-sm text-gray-900">
                             <Calendar className="h-4 w-4 text-gray-400" />
                             {formatDate(reservation.reservationDate)}
+                            {reservation.reservationTime && (
+                              <span className="text-gray-600 font-medium">@ {reservation.reservationTime}</span>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             Requested: {formatDate(reservation.createdAt)}

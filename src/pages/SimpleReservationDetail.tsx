@@ -338,6 +338,15 @@ export default function SimpleReservationDetail() {
                   <p className="font-medium text-gray-900">{formatDate(reservation.reservationDate)}</p>
                 </div>
               </div>
+              {reservation.reservationTime && (
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">Reservation Time</p>
+                    <p className="font-medium text-gray-900">{reservation.reservationTime}</p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-gray-400" />
                 <div>

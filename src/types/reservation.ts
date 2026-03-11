@@ -270,6 +270,7 @@ export interface SimpleReservation {
   contactNumber: string
   numberOfGuests: number
   reservationDate: string
+  reservationTime: string
   status: SimpleReservationStatus
   rejectionReason?: string
   cancellationReason?: string
