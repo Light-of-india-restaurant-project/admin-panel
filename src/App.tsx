@@ -7,6 +7,7 @@ import MenuItems from './pages/MenuItems'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import DeliveryZones from './pages/DeliveryZones'
+import Discounts from './pages/Discounts'
 import Reservations from './pages/Reservations'
 import ReservationDetail from './pages/ReservationDetail'
 import SimpleReservations from './pages/SimpleReservations'
@@ -61,6 +62,7 @@ function App() {
             <Route path="tables" element={<Tables />} />
             <Route path="reservation-settings" element={<ReservationSettings />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />
+            <Route path="discounts" element={<Discounts />} />
             <Route path="menu-categories" element={<MenuCategories />} />
             <Route path="menu-items" element={<MenuItems />} />
             <Route path="gallery" element={<Gallery />} />

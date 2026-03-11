@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Image,
   Tag,
+  Percent,
 } from 'lucide-react'
 
 type NavItem = {
@@ -98,6 +99,7 @@ export default function Layout() {
       ]
     },
     { to: '/delivery-zones', icon: MapPin, label: 'Delivery Zones' },
+    { to: '/discounts', icon: Percent, label: 'Discounts' },
     { to: '/menu-categories', icon: List, label: 'Menu Categories' },
     { to: '/menu-items', icon: UtensilsCrossed, label: 'Menu Items' },
     { to: '/gallery', icon: Image, label: 'Gallery' },
