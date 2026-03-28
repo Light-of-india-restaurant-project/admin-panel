@@ -13,7 +13,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Ban
+  Ban,
+  ArrowUpDown,
+  XCircle as ClearIcon
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { 
@@ -25,6 +27,13 @@ import {
 import type { SimpleReservationStatus, SimpleReservation } from '@/types/reservation'
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
+const SORT_OPTIONS = [
+  { value: 'reservationDate:asc', label: 'Date (Upcoming First)' },
+  { value: 'reservationDate:desc', label: 'Date (Latest First)' },
+  { value: 'createdAt:desc', label: 'Created (Newest First)' },
+  { value: 'createdAt:asc', label: 'Created (Oldest First)' },
+]
 
 const STATUS_CONFIG: Record<SimpleReservationStatus, { label: string; color: string; icon: React.ElementType }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -114,6 +123,7 @@ export default function SimpleReservations() {
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDate, setFilterDate] = useState('')
+  const [sortBy, setSortBy] = useState('reservationDate:asc')
 
   // Modal states
   const [acceptModal, setAcceptModal] = useState<{ isOpen: boolean; reservation: SimpleReservation | null }>({
@@ -135,9 +145,10 @@ export default function SimpleReservations() {
   const queryParams = useMemo(() => ({
     skip: (page - 1) * pageSize,
     limit: pageSize,
+    sortBy,
     ...(filterStatus && { status: filterStatus as SimpleReservationStatus }),
     ...(filterDate && { startDate: filterDate, endDate: filterDate }),
-  }), [page, pageSize, filterStatus, filterDate])
+  }), [page, pageSize, filterStatus, filterDate, sortBy])
 
   // React Query hooks
   const { data, isLoading } = useGetSimpleReservations(queryParams)
@@ -255,7 +266,7 @@ export default function SimpleReservations() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <select
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
@@ -266,12 +277,32 @@ export default function SimpleReservations() {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => { setFilterDate(e.target.value); setPage(1) }}
+            <div className="relative">
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => { setFilterDate(e.target.value); setPage(1) }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              {filterDate && (
+                <button
+                  onClick={() => { setFilterDate(''); setPage(1) }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Clear date filter"
+                >
+                  <ClearIcon className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1) }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+            >
+              {SORT_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

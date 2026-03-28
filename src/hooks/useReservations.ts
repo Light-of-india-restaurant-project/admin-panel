@@ -390,6 +390,7 @@ interface SimpleReservationQueryParams {
   endDate?: string
   skip?: number
   limit?: number
+  sortBy?: string
 }
 
 // Get all simple reservations
