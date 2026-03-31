@@ -13,7 +13,9 @@ import {
   Package,
   RefreshCw,
   Eye,
-  Filter
+  Filter,
+  Truck,
+  Store
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -56,6 +58,7 @@ interface Order {
   tax: number
   total: number
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+  isPickup?: boolean
   pickupTime?: string
   notes?: string
   deliveryAddress: DeliveryAddress
@@ -114,6 +117,7 @@ export default function Orders() {
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
@@ -174,6 +178,10 @@ export default function Orders() {
   }
 
   const filteredOrders = orders.filter(order => {
+    // Type filter
+    if (typeFilter === 'delivery' && order.isPickup) return false
+    if (typeFilter === 'pickup' && !order.isPickup) return false
+    
     if (!search) return true
     const searchLower = search.toLowerCase()
     return (
@@ -216,6 +224,19 @@ export default function Orders() {
             />
           </div>
           
+          {/* Type Filter */}
+          <div className="flex items-center gap-2">
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="all">All Types</option>
+              <option value="delivery">🚗 Delivery</option>
+              <option value="pickup">🏪 Pickup</option>
+            </select>
+          </div>
+
           {/* Status Filter */}
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-gray-400" />
@@ -257,6 +278,9 @@ export default function Orders() {
                     Order
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Customer
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
@@ -288,6 +312,19 @@ export default function Orders() {
                         <div className="text-xs text-gray-500 md:hidden">
                           {format(new Date(order.createdAt), 'MMM d, HH:mm')}
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {order.isPickup ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
+                            <Store className="h-3 w-3" />
+                            Pickup
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
+                            <Truck className="h-3 w-3" />
+                            Delivery
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">

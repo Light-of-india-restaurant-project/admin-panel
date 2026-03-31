@@ -13,7 +13,9 @@ import {
   Calendar,
   FileText,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  Truck,
+  Store
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -56,6 +58,7 @@ interface Order {
   tax: number
   total: number
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+  isPickup?: boolean
   pickupTime?: string
   notes?: string
   deliveryAddress: DeliveryAddress
@@ -292,9 +295,22 @@ export default function OrderDetail() {
                 )}
               </div>
             </div>
-            <p className="text-gray-500">
-              Placed on {format(new Date(order.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-gray-500">
+                Placed on {format(new Date(order.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
+              </p>
+              {order.isPickup ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
+                  <Store className="h-3 w-3" />
+                  Pickup
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
+                  <Truck className="h-3 w-3" />
+                  Delivery
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="lg:text-right">
@@ -405,27 +421,47 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          {/* Delivery Address */}
+          {/* Delivery / Pickup Info */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="px-6 py-4 border-b bg-green-50">
-              <h2 className="font-semibold text-gray-900">Delivery Address</h2>
+            <div className={`px-6 py-4 border-b ${order.isPickup ? 'bg-orange-50' : 'bg-green-50'}`}>
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                {order.isPickup ? (
+                  <><Store className="h-4 w-4 text-orange-600" /> Pickup Order</>
+                ) : (
+                  <><Truck className="h-4 w-4 text-green-600" /> Delivery Address</>
+                )}
+              </h2>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Package className="h-5 w-5 text-green-600" />
+              {!order.isPickup && (
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Package className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {order.deliveryAddress?.streetName} {order.deliveryAddress?.houseNumber}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {order.deliveryAddress?.postalCode} {order.deliveryAddress?.city}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {order.deliveryAddress?.streetName} {order.deliveryAddress?.houseNumber}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {order.deliveryAddress?.postalCode} {order.deliveryAddress?.city}
-                  </p>
+              )}
+
+              {order.isPickup && order.pickupTime && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-medium">Pickup Time</p>
+                    <p className="text-gray-900 font-medium">{order.pickupTime}</p>
+                  </div>
                 </div>
-              </div>
+              )}
               
-              <div className="flex items-center gap-3 pt-3 border-t">
+              <div className={`flex items-center gap-3 ${!order.isPickup || order.pickupTime ? 'pt-3 border-t' : ''}`}>
                 <Phone className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-xs text-gray-500 uppercase font-medium">Contact Mobile</p>
@@ -441,16 +477,6 @@ export default function OrderDetail() {
               <h2 className="font-semibold text-gray-900">Order Info</h2>
             </div>
             <div className="p-6 space-y-4">
-              {order.pickupTime && (
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium">Pickup Time</p>
-                    <p className="text-gray-900 font-medium">{order.pickupTime}</p>
-                  </div>
-                </div>
-              )}
-              
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <div>
