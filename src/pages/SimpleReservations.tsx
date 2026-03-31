@@ -14,7 +14,6 @@ import {
   CheckCircle,
   XCircle,
   Ban,
-  ArrowUpDown,
   XCircle as ClearIcon
 } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
