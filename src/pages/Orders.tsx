@@ -315,14 +315,14 @@ export default function Orders() {
                       </td>
                       <td className="px-4 py-3">
                         {order.isPickup ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
-                            <Store className="h-3 w-3" />
-                            Pickup
+                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800 border border-orange-300 uppercase tracking-wide">
+                            <Store className="h-4 w-4" />
+                            PICKUP
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
-                            <Truck className="h-3 w-3" />
-                            Delivery
+                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 border border-blue-300 uppercase tracking-wide">
+                            <Truck className="h-4 w-4" />
+                            DELIVERY
                           </span>
                         )}
                       </td>

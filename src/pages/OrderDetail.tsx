@@ -15,7 +15,8 @@ import {
   RefreshCw,
   ChevronDown,
   Truck,
-  Store
+  Store,
+  Printer
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -217,21 +218,30 @@ export default function OrderDetail() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/orders')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Back to Orders
+          </button>
+          <button
+            onClick={fetchOrder}
+            className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+        </div>
         <button
-          onClick={() => navigate('/orders')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors print:hidden"
+          title="Print Order"
         >
-          <ArrowLeft className="h-5 w-5" />
-          Back to Orders
-        </button>
-        
-        <button
-          onClick={fetchOrder}
-          className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <Printer className="h-5 w-5" />
+          Print
         </button>
       </div>
 
@@ -295,19 +305,19 @@ export default function OrderDetail() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-3 mt-1">
               <p className="text-gray-500">
                 Placed on {format(new Date(order.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}
               </p>
               {order.isPickup ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
-                  <Store className="h-3 w-3" />
-                  Pickup
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800 border border-orange-300 uppercase tracking-wide">
+                  <Store className="h-4 w-4" />
+                  PICKUP
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300">
-                  <Truck className="h-3 w-3" />
-                  Delivery
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 border border-blue-300 uppercase tracking-wide">
+                  <Truck className="h-4 w-4" />
+                  DELIVERY
                 </span>
               )}
             </div>
