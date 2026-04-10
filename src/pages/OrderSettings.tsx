@@ -1,14 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { get, patch } from '../api/client'
-import { Settings, Truck, Store, CheckCircle, XCircle } from 'lucide-react'
+import { Settings, Truck, Store, CheckCircle, XCircle, Clock } from 'lucide-react'
 
 interface OrderSettingsData {
   deliveryEnabled: boolean
   pickupEnabled: boolean
+  pickupStartTime: string
+  pickupEndTime: string
+  pickupInterval: number
 }
 
 export default function OrderSettings() {
-  const [settings, setSettings] = useState<OrderSettingsData>({ deliveryEnabled: true, pickupEnabled: true })
+  const [settings, setSettings] = useState<OrderSettingsData>({
+    deliveryEnabled: true,
+    pickupEnabled: true,
+    pickupStartTime: '16:00',
+    pickupEndTime: '21:30',
+    pickupInterval: 30,
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -30,6 +39,9 @@ export default function OrderSettings() {
       setSettings({
         deliveryEnabled: res.data.deliveryEnabled ?? true,
         pickupEnabled: res.data.pickupEnabled ?? true,
+        pickupStartTime: res.data.pickupStartTime ?? '16:00',
+        pickupEndTime: res.data.pickupEndTime ?? '21:30',
+        pickupInterval: res.data.pickupInterval ?? 30,
       })
     } catch (err) {
       console.error('Failed to fetch order settings:', err)
@@ -63,6 +75,34 @@ export default function OrderSettings() {
       setSaving(false)
     }
   }
+
+  const handlePickupTimeChange = async (field: 'pickupStartTime' | 'pickupEndTime' | 'pickupInterval', value: string | number) => {
+    setSaving(true)
+    try {
+      await patch({ url: 'reservations/admin/settings/order-settings', body: { [field]: value } })
+      setSettings(prev => ({ ...prev, [field]: value }))
+      setNotification({ type: 'success', message: 'Pickup time updated' })
+    } catch {
+      setNotification({ type: 'error', message: 'Failed to update pickup time.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const previewTimeSlots = useMemo(() => {
+    const slots: string[] = []
+    const [startH, startM] = settings.pickupStartTime.split(':').map(Number)
+    const [endH, endM] = settings.pickupEndTime.split(':').map(Number)
+    let current = startH * 60 + startM
+    const end = endH * 60 + endM
+    while (current <= end) {
+      const h = Math.floor(current / 60).toString().padStart(2, '0')
+      const m = (current % 60).toString().padStart(2, '0')
+      slots.push(`${h}:${m}`)
+      current += settings.pickupInterval
+    }
+    return slots
+  }, [settings.pickupStartTime, settings.pickupEndTime, settings.pickupInterval])
 
   if (loading) {
     return (
@@ -157,6 +197,91 @@ export default function OrderSettings() {
                   settings.pickupEnabled ? 'translate-x-6 sm:translate-x-7' : 'translate-x-1'
                 }`} />
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pickup Time Settings */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Pickup Time Settings</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Configure the available pickup time slots for customers</p>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Start Time */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Start Time</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Earliest pickup time available</p>
+              </div>
+            </div>
+            <input
+              type="time"
+              value={settings.pickupStartTime}
+              onChange={(e) => handlePickupTimeChange('pickupStartTime', e.target.value)}
+              disabled={saving}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            />
+          </div>
+
+          {/* End Time */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">End Time</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Latest pickup time available</p>
+              </div>
+            </div>
+            <input
+              type="time"
+              value={settings.pickupEndTime}
+              onChange={(e) => handlePickupTimeChange('pickupEndTime', e.target.value)}
+              disabled={saving}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            />
+          </div>
+
+          {/* Time Interval */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Time Interval</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Gap between pickup time slots</p>
+              </div>
+            </div>
+            <select
+              value={settings.pickupInterval}
+              onChange={(e) => handlePickupTimeChange('pickupInterval', Number(e.target.value))}
+              disabled={saving}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              <option value={15}>15 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={60}>60 minutes</option>
+            </select>
+          </div>
+
+          {/* Preview */}
+          <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+            <h4 className="text-sm font-semibold text-indigo-900 mb-3">Preview — Available Time Slots</h4>
+            <div className="flex flex-wrap gap-2">
+              {previewTimeSlots.map((slot) => (
+                <span key={slot} className="px-3 py-1 bg-white border border-indigo-200 rounded-full text-sm text-indigo-700 font-medium">
+                  {slot}
+                </span>
+              ))}
             </div>
           </div>
         </div>
