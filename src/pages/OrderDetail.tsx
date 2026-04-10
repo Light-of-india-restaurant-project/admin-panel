@@ -142,6 +142,8 @@ export default function OrderDetail() {
         url: `admin/orders/${id}`,
       })
       setOrder(response.order)
+      // Mark order as visited by admin
+      patch({ url: `admin/orders/${id}/visited`, body: {} }).catch(() => {})
     } catch (err) {
       console.error('Failed to fetch order:', err)
       setError('Failed to load order details. Please try again.')

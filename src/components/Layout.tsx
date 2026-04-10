@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { get } from '../api/client'
 import { 
   LayoutDashboard, 
   LogOut,
@@ -20,6 +21,7 @@ import {
   Image,
   Tag,
   Percent,
+  ShoppingCart,
 } from 'lucide-react'
 
 type NavItem = {
@@ -49,6 +51,48 @@ export default function Layout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['Reservations'])
+  
+  // Unvisited order count
+  const [unvisitedCount, setUnvisitedCount] = useState(0)
+  const prevCountRef = useRef(0)
+
+  const playNotificationSound = useCallback(() => {
+    try {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 800
+      gain.gain.value = 0.3
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.3)
+    } catch {
+      // Audio not available
+    }
+  }, [])
+
+  const fetchUnvisitedCount = useCallback(async () => {
+    try {
+      const res = await get<{ success: boolean; count: number }>({ url: 'admin/orders/unvisited-count' })
+      const newCount = res.count
+      if (newCount > prevCountRef.current && prevCountRef.current !== 0) {
+        playNotificationSound()
+      }
+      prevCountRef.current = newCount
+      setUnvisitedCount(newCount)
+    } catch {
+      // Silently fail
+    }
+  }, [playNotificationSound])
+
+  // Poll unvisited count every 15 seconds
+  useEffect(() => {
+    fetchUnvisitedCount()
+    const interval = setInterval(fetchUnvisitedCount, 15000)
+    return () => clearInterval(interval)
+  }, [fetchUnvisitedCount])
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -105,6 +149,7 @@ export default function Layout() {
     { to: '/gallery', icon: Image, label: 'Gallery' },
     { to: '/catering-packs', icon: Package, label: 'Catering Packs' },
     { to: '/offers', icon: Tag, label: 'Special Offers' },
+    { to: '/order-settings', icon: ShoppingCart, label: 'Store Settings' },
   ]
 
   const isGroupActive = (group: NavGroup) => {
@@ -210,7 +255,14 @@ export default function Layout() {
                     }`
                   }
                 >
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <div className="relative">
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    {item.to === '/orders' && unvisitedCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
+                        {unvisitedCount > 99 ? '99+' : unvisitedCount}
+                      </span>
+                    )}
+                  </div>
                   {!isCollapsed && <span>{item.label}</span>}
                 </NavLink>
               )}

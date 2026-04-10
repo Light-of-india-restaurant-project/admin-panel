@@ -19,6 +19,7 @@ import ReservationSettings from './pages/ReservationSettings'
 import Gallery from './pages/Gallery'
 import CateringPacks from './pages/CateringPacks'
 import Offers from './pages/Offers'
+import OrderSettings from './pages/OrderSettings'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ function App() {
             <Route path="gallery" element={<Gallery />} />
             <Route path="catering-packs" element={<CateringPacks />} />
             <Route path="offers" element={<Offers />} />
+            <Route path="order-settings" element={<OrderSettings />} />
           </Route>
         </Routes>
       </AuthProvider>
