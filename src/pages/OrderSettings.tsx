@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { get, patch } from '../api/client'
-import { Settings, Truck, Store, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Settings, Truck, Store, CheckCircle, XCircle, Clock, Euro, Save } from 'lucide-react'
 
 interface OrderSettingsData {
   deliveryEnabled: boolean
@@ -8,6 +8,8 @@ interface OrderSettingsData {
   pickupStartTime: string
   pickupEndTime: string
   pickupInterval: number
+  minimumOrderAmount: number
+  deliveryCharge: number
 }
 
 export default function OrderSettings() {
@@ -17,10 +19,14 @@ export default function OrderSettings() {
     pickupStartTime: '16:00',
     pickupEndTime: '21:30',
     pickupInterval: 30,
+    minimumOrderAmount: 0,
+    deliveryCharge: 0,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [draftMinimum, setDraftMinimum] = useState(0)
+  const [draftDeliveryCharge, setDraftDeliveryCharge] = useState(0)
 
   useEffect(() => {
     fetchSettings()
@@ -42,7 +48,11 @@ export default function OrderSettings() {
         pickupStartTime: res.data.pickupStartTime ?? '16:00',
         pickupEndTime: res.data.pickupEndTime ?? '21:30',
         pickupInterval: res.data.pickupInterval ?? 30,
+        minimumOrderAmount: res.data.minimumOrderAmount ?? 0,
+        deliveryCharge: res.data.deliveryCharge ?? 0,
       })
+      setDraftMinimum(res.data.minimumOrderAmount ?? 0)
+      setDraftDeliveryCharge(res.data.deliveryCharge ?? 0)
     } catch (err) {
       console.error('Failed to fetch order settings:', err)
     } finally {
@@ -103,6 +113,21 @@ export default function OrderSettings() {
     }
     return slots
   }, [settings.pickupStartTime, settings.pickupEndTime, settings.pickupInterval])
+
+  const hasAmountChanges = draftMinimum !== settings.minimumOrderAmount || draftDeliveryCharge !== settings.deliveryCharge
+
+  const handleSaveAmounts = useCallback(async () => {
+    setSaving(true)
+    try {
+      await patch({ url: 'reservations/admin/settings/order-settings', body: { minimumOrderAmount: draftMinimum, deliveryCharge: draftDeliveryCharge } })
+      setSettings(prev => ({ ...prev, minimumOrderAmount: draftMinimum, deliveryCharge: draftDeliveryCharge }))
+      setNotification({ type: 'success', message: 'Order amount settings saved' })
+    } catch {
+      setNotification({ type: 'error', message: 'Failed to save order amount settings.' })
+    } finally {
+      setSaving(false)
+    }
+  }, [draftMinimum, draftDeliveryCharge])
 
   if (loading) {
     return (
@@ -283,6 +308,82 @@ export default function OrderSettings() {
                 </span>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Order Amount Settings */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Order Amount Settings</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">Set minimum order amount and delivery charges</p>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Minimum Order Amount */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
+                <Euro className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Minimum Order Amount</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Minimum total required to place an order (set 0 to disable)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 font-medium">€</span>
+              <input
+                type="number"
+                min="0"
+                step="0.50"
+                value={draftMinimum}
+                onChange={(e) => setDraftMinimum(parseFloat(e.target.value) || 0)}
+                disabled={saving}
+                className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* Delivery Charge */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
+                <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Delivery Charge</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Fee added to delivery orders (set 0 for free delivery)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 font-medium">€</span>
+              <input
+                type="number"
+                min="0"
+                step="0.50"
+                value={draftDeliveryCharge}
+                onChange={(e) => setDraftDeliveryCharge(parseFloat(e.target.value) || 0)}
+                disabled={saving}
+                className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleSaveAmounts}
+              disabled={!hasAmountChanges || saving}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                hasAmountChanges
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              } disabled:opacity-50`}
+            >
+              <Save className="h-4 w-4" />
+              Save
+            </button>
           </div>
         </div>
       </div>
