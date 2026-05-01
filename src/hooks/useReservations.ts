@@ -370,10 +370,10 @@ export const useUpdateClosedDates = () => {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: (closedDates: string[]) =>
+    mutationFn: ({ closedDates, openDates }: { closedDates: string[]; openDates: string[] }) =>
       patch<RestaurantSettingsResponse>({ 
         url: 'reservations/admin/settings/closed-dates', 
-        body: { closedDates } 
+        body: { closedDates, openDates } 
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.restaurantSettings] })

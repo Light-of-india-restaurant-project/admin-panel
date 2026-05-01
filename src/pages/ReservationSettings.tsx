@@ -33,6 +33,7 @@ export default function ReservationSettings() {
   const [maxGuests, setMaxGuests] = useState<number | null>(null)
   const [minGuests, setMinGuests] = useState<number | null>(null)
   const [closedDates, setClosedDates] = useState<string[]>([])
+  const [openDates, setOpenDates] = useState<string[]>([])
   
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -51,6 +52,9 @@ export default function ReservationSettings() {
       setMinGuests(data.data.minGuestsPerReservation)
       // Convert dates to ISO strings for comparison
       setClosedDates((data.data.closedDates || []).map((d: string | Date) => 
+        new Date(d).toISOString().split('T')[0]
+      ))
+      setOpenDates((data.data.openDates || []).map((d: string | Date) =>
         new Date(d).toISOString().split('T')[0]
       ))
       setIsDataLoaded(true)
@@ -89,12 +93,27 @@ export default function ReservationSettings() {
     ))
   }
 
-  const handleToggleClosedDate = (dateStr: string) => {
-    setClosedDates(prev => 
-      prev.includes(dateStr) 
+  const handleToggleSpecificDate = (dateStr: string, isOpenByWeek: boolean) => {
+    if (isOpenByWeek) {
+      setClosedDates(prev =>
+        prev.includes(dateStr)
+          ? prev.filter(d => d !== dateStr)
+          : [...prev, dateStr]
+      )
+
+      // Remove stale open override if weekly hours are already open.
+      setOpenDates(prev => prev.filter(d => d !== dateStr))
+      return
+    }
+
+    setOpenDates(prev =>
+      prev.includes(dateStr)
         ? prev.filter(d => d !== dateStr)
         : [...prev, dateStr]
     )
+
+    // A weekly-closed date should not also be marked as specifically closed.
+    setClosedDates(prev => prev.filter(d => d !== dateStr))
   }
 
   const handleSaveHours = async () => {
@@ -137,11 +156,11 @@ export default function ReservationSettings() {
     setError(null)
     setSuccessMessage(null)
     try {
-      await updateClosedDatesMutation.mutateAsync(closedDates)
-      setSuccessMessage('Closed dates saved successfully')
+      await updateClosedDatesMutation.mutateAsync({ closedDates, openDates })
+      setSuccessMessage('Specific date rules saved successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save closed dates')
+      setError(err instanceof Error ? err.message : 'Failed to save specific date rules')
     }
   }
 
@@ -296,41 +315,47 @@ export default function ReservationSettings() {
           <h2 className="text-lg font-semibold text-gray-900">Manage Specific Dates</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Click on any date to mark it as closed (holidays, special events, etc.). 
-          Dates already closed by weekly schedule are shown in gray.
+          Click any date to override weekly schedule. Weekly-open dates can be marked closed,
+          and weekly-closed dates can be opened for specific dates.
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
           {allDates.map(({ date, dateStr, dayName, isOpenByWeek }) => {
             const isClosedSpecifically = closedDates.includes(dateStr)
-            const finalIsOpen = isOpenByWeek && !isClosedSpecifically
+            const isOpenSpecifically = openDates.includes(dateStr)
+            const finalIsOpen = (isOpenByWeek || isOpenSpecifically) && !isClosedSpecifically
+
+            const tileClasses = !isOpenByWeek && !isOpenSpecifically
+              ? 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+              : isClosedSpecifically
+              ? 'bg-red-100 border-2 border-red-300 text-red-800 hover:bg-red-200'
+              : !isOpenByWeek && isOpenSpecifically
+              ? 'bg-blue-50 border-2 border-blue-300 text-blue-800 hover:bg-blue-100'
+              : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'
             
             return (
               <button
                 key={dateStr}
-                onClick={() => isOpenByWeek && handleToggleClosedDate(dateStr)}
-                disabled={!isOpenByWeek}
-                className={`p-2 rounded-lg text-sm text-left transition-all ${
-                  !isOpenByWeek 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : isClosedSpecifically
-                    ? 'bg-red-100 border-2 border-red-300 text-red-800 hover:bg-red-200'
-                    : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'
-                }`}
+                onClick={() => handleToggleSpecificDate(dateStr, isOpenByWeek)}
+                className={`p-2 rounded-lg text-sm text-left transition-all ${tileClasses}`}
                 title={
-                  !isOpenByWeek 
-                    ? `Closed on ${dayName}s (weekly schedule)` 
-                    : isClosedSpecifically 
+                  isClosedSpecifically 
                     ? 'Click to re-open this date'
+                    : !isOpenByWeek && !isOpenSpecifically
+                    ? `Closed on ${dayName}s (weekly schedule). Click to open this date.`
+                    : !isOpenByWeek && isOpenSpecifically
+                    ? 'Open for this date only. Click to remove override.'
                     : 'Click to close this date'
                 }
               >
                 <div className="font-medium">{formatDate(date)}</div>
                 <div className="text-xs mt-0.5">
-                  {!isOpenByWeek 
-                    ? 'Weekly closed' 
-                    : isClosedSpecifically 
+                  {isClosedSpecifically
                     ? 'Closed' 
+                    : !isOpenByWeek && isOpenSpecifically
+                    ? 'Open (specific)'
+                    : !isOpenByWeek
+                    ? 'Weekly closed'
                     : finalIsOpen ? 'Open' : 'Closed'}
                 </div>
               </button>
@@ -346,6 +371,10 @@ export default function ReservationSettings() {
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
             <span>Closed (specific)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-blue-50 border-2 border-blue-300 rounded"></div>
+            <span>Open (specific)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 bg-gray-100 rounded"></div>
