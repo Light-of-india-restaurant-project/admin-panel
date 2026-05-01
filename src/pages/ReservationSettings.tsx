@@ -20,6 +20,14 @@ const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
 
 const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
 
+const toLocalDateKey = (value: string | Date) => {
+  const date = new Date(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function ReservationSettings() {
   const { data, isLoading } = useGetRestaurantSettings()
   const updateHoursMutation = useUpdateOperatingHours()
@@ -50,12 +58,12 @@ export default function ReservationSettings() {
       setMaxAdvanceDays(data.data.maxAdvanceDays)
       setMaxGuests(data.data.maxGuestsPerReservation)
       setMinGuests(data.data.minGuestsPerReservation)
-      // Convert dates to ISO strings for comparison
+      // Convert dates to local date keys to avoid timezone day-shifts.
       setClosedDates((data.data.closedDates || []).map((d: string | Date) => 
-        new Date(d).toISOString().split('T')[0]
+        toLocalDateKey(d)
       ))
       setOpenDates((data.data.openDates || []).map((d: string | Date) =>
-        new Date(d).toISOString().split('T')[0]
+        toLocalDateKey(d)
       ))
       setIsDataLoaded(true)
     }
@@ -78,7 +86,7 @@ export default function ReservationSettings() {
       
       dates.push({
         date,
-        dateStr: date.toISOString().split('T')[0],
+        dateStr: toLocalDateKey(date),
         dayName,
         isOpenByWeek: operatingHour?.isOpen ?? false,
       })
