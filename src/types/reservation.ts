@@ -120,12 +120,18 @@ export interface OperatingHours {
   closeTime: string
 }
 
+export interface RestaurantClosedDate {
+  date: string
+  reason: string
+}
+
 // Restaurant Settings
 export interface RestaurantSettings {
   _id: string
   operatingHours: OperatingHours[]
   closedDates: string[]
   openDates: string[]
+  restaurantClosedDates: RestaurantClosedDate[]
   reservationDuration: number
   slotInterval: number
   maxAdvanceDays: number
@@ -139,6 +145,7 @@ export interface RestaurantSettingsFormData {
   operatingHours?: OperatingHours[]
   closedDates?: string[]
   openDates?: string[]
+  restaurantClosedDates?: RestaurantClosedDate[]
   reservationDuration?: number
   slotInterval?: number
   maxAdvanceDays?: number

@@ -21,6 +21,7 @@ import type {
   RestaurantSettingsFormData,
   RestaurantSettingsResponse,
   OperatingHours,
+  RestaurantClosedDate,
   ReservationStatus,
   SimpleReservationStatus,
   SimpleReservationResponse,
@@ -374,6 +375,22 @@ export const useUpdateClosedDates = () => {
       patch<RestaurantSettingsResponse>({ 
         url: 'reservations/admin/settings/closed-dates', 
         body: { closedDates, openDates } 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.restaurantSettings] })
+    },
+  })
+}
+
+// Update restaurant-wide closed dates (all orders + reservations)
+export const useUpdateRestaurantClosedDates = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (restaurantClosedDates: RestaurantClosedDate[]) =>
+      patch<RestaurantSettingsResponse>({
+        url: 'reservations/admin/settings/restaurant-closed-dates',
+        body: { restaurantClosedDates },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.restaurantSettings] })

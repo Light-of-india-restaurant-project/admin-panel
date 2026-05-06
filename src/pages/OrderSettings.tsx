@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { get, patch } from '../api/client'
-import { Settings, Truck, Store, CheckCircle, XCircle, Clock, Euro, Save } from 'lucide-react'
+import { Settings, Truck, Store, CheckCircle, XCircle, Clock, Euro, Save, CalendarDays } from 'lucide-react'
+import FormModal from '../components/FormModal'
+
+interface RestaurantClosedDate {
+  date: string
+  reason: string
+}
 
 interface OrderSettingsData {
   deliveryEnabled: boolean
@@ -10,6 +16,7 @@ interface OrderSettingsData {
   pickupInterval: number
   minimumOrderAmount: number
   deliveryCharge: number
+  restaurantClosedDates?: RestaurantClosedDate[]
 }
 
 export default function OrderSettings() {
@@ -27,6 +34,11 @@ export default function OrderSettings() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [draftMinimum, setDraftMinimum] = useState(0)
   const [draftDeliveryCharge, setDraftDeliveryCharge] = useState(0)
+  const [restaurantClosedDates, setRestaurantClosedDates] = useState<RestaurantClosedDate[]>([])
+  const [closureModalOpen, setClosureModalOpen] = useState(false)
+  const [selectedClosureDate, setSelectedClosureDate] = useState<string | null>(null)
+  const [closureReasonInput, setClosureReasonInput] = useState('')
+  const [closureReasonError, setClosureReasonError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchSettings()
@@ -50,9 +62,11 @@ export default function OrderSettings() {
         pickupInterval: res.data.pickupInterval ?? 30,
         minimumOrderAmount: res.data.minimumOrderAmount ?? 0,
         deliveryCharge: res.data.deliveryCharge ?? 0,
+        restaurantClosedDates: res.data.restaurantClosedDates ?? [],
       })
       setDraftMinimum(res.data.minimumOrderAmount ?? 0)
       setDraftDeliveryCharge(res.data.deliveryCharge ?? 0)
+      setRestaurantClosedDates(res.data.restaurantClosedDates ?? [])
     } catch (err) {
       console.error('Failed to fetch order settings:', err)
     } finally {
@@ -128,6 +142,93 @@ export default function OrderSettings() {
       setSaving(false)
     }
   }, [draftMinimum, draftDeliveryCharge])
+
+  const toDateKey = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const todayKey = toDateKey(new Date())
+
+  const closureReasonByDate = useMemo(() => {
+    const map = new Map<string, string>()
+    restaurantClosedDates.forEach((entry) => {
+      const key = toDateKey(new Date(entry.date))
+      map.set(key, entry.reason)
+    })
+    return map
+  }, [restaurantClosedDates])
+
+  const calendarDates = useMemo(() => {
+    const result: Date[] = []
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    for (let i = 0; i < 60; i++) {
+      const date = new Date(start)
+      date.setDate(start.getDate() + i)
+      result.push(date)
+    }
+    return result
+  }, [])
+
+  const saveRestaurantClosedDates = async (nextData: RestaurantClosedDate[]) => {
+    setSaving(true)
+    try {
+      await patch({
+        url: 'reservations/admin/settings/restaurant-closed-dates',
+        body: { restaurantClosedDates: nextData },
+      })
+      setRestaurantClosedDates(nextData)
+      setNotification({ type: 'success', message: 'Restaurant closure dates saved' })
+    } catch {
+      setNotification({ type: 'error', message: 'Failed to save restaurant closure dates.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleClosureDateClick = async (date: Date) => {
+    const dateKey = toDateKey(date)
+
+    if (dateKey < todayKey) {
+      return
+    }
+
+    if (closureReasonByDate.has(dateKey)) {
+      const nextData = restaurantClosedDates.filter((entry) => toDateKey(new Date(entry.date)) !== dateKey)
+      await saveRestaurantClosedDates(nextData)
+      return
+    }
+
+    setSelectedClosureDate(dateKey)
+    setClosureReasonInput('')
+    setClosureReasonError(null)
+    setClosureModalOpen(true)
+  }
+
+  const handleSaveClosureReason = async () => {
+    const reason = closureReasonInput.trim()
+    if (!selectedClosureDate) return
+
+    if (!reason) {
+      setClosureReasonError('Reason is required')
+      return
+    }
+
+    const nextData = [
+      ...restaurantClosedDates.filter((entry) => toDateKey(new Date(entry.date)) !== selectedClosureDate),
+      { date: selectedClosureDate, reason },
+    ]
+
+    setClosureModalOpen(false)
+    setSelectedClosureDate(null)
+    setClosureReasonInput('')
+    setClosureReasonError(null)
+
+    await saveRestaurantClosedDates(nextData)
+  }
 
   if (loading) {
     return (
@@ -387,6 +488,115 @@ export default function OrderSettings() {
           </div>
         </div>
       </div>
+
+      {/* Restaurant Closure Calendar */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Restaurant Closed Dates</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            Separate from Reservation Settings. Mark dates closed for all orders and reservations.
+          </p>
+        </div>
+
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4 text-sm text-gray-600">
+            <CalendarDays className="h-4 w-4" />
+            <span>Click a date to close it (reason required). Click a closed date again to reopen.</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+            {calendarDates.map((date) => {
+              const dateKey = toDateKey(date)
+              const isPast = dateKey < todayKey
+              const reason = closureReasonByDate.get(dateKey)
+              const isClosed = !!reason
+
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  onClick={() => handleClosureDateClick(date)}
+                  disabled={isPast || saving}
+                  className={`p-2 rounded border text-left transition-colors ${
+                    isPast
+                      ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                      : isClosed
+                      ? 'bg-red-50 border-red-300 text-red-800 hover:bg-red-100'
+                      : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'
+                  }`}
+                  title={isClosed ? reason : undefined}
+                >
+                  <p className="text-xs font-semibold">
+                    {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-[11px] opacity-80 mt-1">
+                    {isPast ? 'Past' : isClosed ? 'Closed' : 'Open'}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-4 text-xs mt-4">
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-100 border border-green-200" /> Open</span>
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-red-100 border border-red-300" /> Closed (with reason)</span>
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> Past date (read-only)</span>
+          </div>
+        </div>
+      </div>
+
+      <FormModal
+        isOpen={closureModalOpen}
+        onClose={() => {
+          setClosureModalOpen(false)
+          setSelectedClosureDate(null)
+          setClosureReasonInput('')
+          setClosureReasonError(null)
+        }}
+        title="Close Date - Enter Reason"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {selectedClosureDate ? `Closing date: ${selectedClosureDate}` : ''}
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">Reason *</label>
+            <textarea
+              value={closureReasonInput}
+              onChange={(e) => {
+                setClosureReasonInput(e.target.value)
+                if (closureReasonError) setClosureReasonError(null)
+              }}
+              rows={4}
+              maxLength={300}
+              placeholder="Example: Closed for maintenance"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {closureReasonError && <p className="text-xs text-red-600 mt-1">{closureReasonError}</p>}
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+              onClick={() => {
+                setClosureModalOpen(false)
+                setSelectedClosureDate(null)
+                setClosureReasonInput('')
+                setClosureReasonError(null)
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+              onClick={handleSaveClosureReason}
+            >
+              Save Closed Date
+            </button>
+          </div>
+        </div>
+      </FormModal>
     </div>
   )
 }
