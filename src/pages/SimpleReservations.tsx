@@ -121,7 +121,7 @@ export default function SimpleReservations() {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterDate, setFilterDate] = useState('')
+  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().split('T')[0])
   const [sortBy, setSortBy] = useState('reservationDate:asc')
 
   // Modal states

@@ -15,7 +15,9 @@ import {
   Eye,
   Filter,
   Truck,
-  Store
+  Store,
+  Calendar,
+  X as ClearIcon
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -118,6 +120,7 @@ export default function Orders() {
   const [pageSize, setPageSize] = useState(10)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [dateFilter, setDateFilter] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'))
   const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
@@ -130,6 +133,10 @@ export default function Orders() {
       }
       if (statusFilter !== 'all') {
         params.status = statusFilter
+      }
+      if (dateFilter) {
+        params.startDate = dateFilter
+        params.endDate = dateFilter
       }
       
       const response = await get<OrdersResponse>({
@@ -145,7 +152,7 @@ export default function Orders() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [page, pageSize, statusFilter])
+  }, [page, pageSize, statusFilter, dateFilter])
 
   useEffect(() => {
     fetchOrders()
@@ -235,6 +242,28 @@ export default function Orders() {
               <option value="delivery">🚗 Delivery</option>
               <option value="pickup">🏪 Pickup</option>
             </select>
+          </div>
+
+          {/* Date Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-gray-400" />
+            <div className="relative">
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 pr-8"
+              />
+              {dateFilter && (
+                <button
+                  onClick={() => { setDateFilter(''); setPage(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Clear date filter"
+                >
+                  <ClearIcon className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Status Filter */}
