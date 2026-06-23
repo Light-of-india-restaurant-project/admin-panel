@@ -36,6 +36,9 @@ jobs:
             type=raw,value=latest
             type=sha,prefix=
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -45,6 +48,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_API_BASE_URL=https://api.lightofindia.nl/api/v1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,7 +66,7 @@ jobs:
             echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u abishekshah4444 --password-stdin
             cd /var/www/light-of-india
             docker pull ghcr.io/light-of-india-restaurant-project/admin:latest
-            docker-compose up -d admin
+            docker-compose up -d --force-recreate --no-deps admin
             docker image prune -f
 
       - name: Verify Deployment
