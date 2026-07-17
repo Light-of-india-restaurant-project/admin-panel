@@ -26,6 +26,9 @@ import type {
   SimpleReservationStatus,
   SimpleReservationResponse,
   SingleSimpleReservationResponse,
+  BreakfastReservationStatus,
+  BreakfastReservationResponse,
+  SingleBreakfastReservationResponse,
 } from '@/types/reservation'
 
 // ==================== FLOORS ====================
@@ -398,6 +401,71 @@ export const useUpdateRestaurantClosedDates = () => {
   })
 }
 
+// ==================== BREAKFAST SETTINGS ====================
+
+export const useGetBreakfastSettings = () =>
+  useQuery({
+    queryKey: [QUERY_KEYS.breakfastSettings],
+    queryFn: () => get<RestaurantSettingsResponse>({ url: 'reservations/breakfast-settings' }),
+  })
+
+export const useUpdateBreakfastSettings = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: RestaurantSettingsFormData) =>
+      put<RestaurantSettingsResponse>({ url: 'reservations/admin/breakfast-settings', body: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.breakfastSettings] })
+    },
+  })
+}
+
+export const useUpdateBreakfastOperatingHours = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (operatingHours: OperatingHours[]) =>
+      patch<RestaurantSettingsResponse>({
+        url: 'reservations/admin/breakfast-settings/operating-hours',
+        body: { operatingHours },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.breakfastSettings] })
+    },
+  })
+}
+
+export const useUpdateBreakfastReservationSettings = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<RestaurantSettingsFormData, 'operatingHours'>) =>
+      patch<RestaurantSettingsResponse>({
+        url: 'reservations/admin/breakfast-settings/reservation',
+        body: data,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.breakfastSettings] })
+    },
+  })
+}
+
+export const useUpdateBreakfastClosedDates = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ closedDates, openDates }: { closedDates: string[]; openDates: string[] }) =>
+      patch<RestaurantSettingsResponse>({
+        url: 'reservations/admin/breakfast-settings/closed-dates',
+        body: { closedDates, openDates },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.breakfastSettings] })
+    },
+  })
+}
+
 // ==================== SIMPLE RESERVATIONS ====================
 
 // Query params type for simple reservations
@@ -485,6 +553,49 @@ export const useDeleteSimpleReservation = () => {
       deleteApi<{ message: string }>({ url: `reservations/admin/simple/${id}` }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.simpleReservations] })
+    },
+  })
+}
+
+// ==================== BREAKFAST RESERVATIONS ====================
+
+interface BreakfastReservationQueryParams {
+  status?: BreakfastReservationStatus
+  startDate?: string
+  endDate?: string
+  skip?: number
+  limit?: number
+  sortBy?: string
+}
+
+export const useGetBreakfastReservations = (params: BreakfastReservationQueryParams = {}) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.breakfastReservations, params],
+    queryFn: () =>
+      get<BreakfastReservationResponse>({
+        url: 'reservations/admin/breakfast',
+        params: params as Record<string, unknown>,
+      }),
+  })
+
+export const useGetBreakfastReservation = (id: string) =>
+  useQuery({
+    queryKey: [QUERY_KEYS.breakfastReservations, id],
+    queryFn: () => get<SingleBreakfastReservationResponse>({ url: `reservations/admin/breakfast/${id}` }),
+    enabled: !!id,
+  })
+
+export const useCancelBreakfastReservation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, cancellationReason, adminNote }: { id: string; cancellationReason: string; adminNote?: string }) =>
+      post<SingleBreakfastReservationResponse>({
+        url: `reservations/admin/breakfast/${id}/cancel`,
+        body: { cancellationReason, adminNote },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.breakfastReservations] })
     },
   })
 }

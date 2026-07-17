@@ -301,3 +301,34 @@ export interface SingleSimpleReservationResponse {
   success: boolean
   data: SimpleReservation
 }
+
+// Breakfast Reservation Types
+export type BreakfastReservationStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+
+export interface BreakfastReservation {
+  _id: string
+  name: string
+  email: string
+  contactNumber: string
+  numberOfGuests: number
+  reservationDate: string
+  status: BreakfastReservationStatus
+  rejectionReason?: string
+  cancellationReason?: string
+  adminNote?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BreakfastReservationResponse {
+  message: string
+  success: boolean
+  data: BreakfastReservation[]
+  total: number
+}
+
+export interface SingleBreakfastReservationResponse {
+  message: string
+  success: boolean
+  data: BreakfastReservation
+}

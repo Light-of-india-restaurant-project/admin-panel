@@ -112,7 +112,7 @@ export default function Layout() {
 
   // Auto-expand group when navigating to child route
   useEffect(() => {
-    const reservationRoutes = ['/simple-reservations', '/reservation-settings']
+    const reservationRoutes = ['/simple-reservations', '/breakfast-reservations', '/reservation-settings', '/breakfast-settings']
     if (reservationRoutes.some(route => location.pathname.startsWith(route))) {
       setExpandedGroups(prev => prev.includes('Reservations') ? prev : [...prev, 'Reservations'])
     }
@@ -139,7 +139,9 @@ export default function Layout() {
       label: 'Reservations',
       children: [
         { to: '/simple-reservations', icon: CalendarDays, label: 'Reservations' },
+        { to: '/breakfast-reservations', icon: CalendarDays, label: 'Breakfast Reservations' },
         { to: '/reservation-settings', icon: Settings, label: 'Settings' },
+        { to: '/breakfast-settings', icon: Settings, label: 'Breakfast Settings' },
       ]
     },
     { to: '/delivery-zones', icon: MapPin, label: 'Delivery Zones' },
@@ -341,7 +343,7 @@ export default function Layout() {
 
       {/* Desktop Sidebar */}
       <aside className={`
-        hidden lg:flex flex-col bg-slate-900 text-white relative flex-shrink-0 h-screen sticky top-0
+        hidden lg:flex flex-col bg-slate-900 text-white flex-shrink-0 h-screen sticky top-0
         transition-all duration-300 ease-in-out
         ${isCollapsed ? 'w-20' : 'w-64'}
       `}>

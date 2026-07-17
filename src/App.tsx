@@ -12,10 +12,13 @@ import Reservations from './pages/Reservations'
 import ReservationDetail from './pages/ReservationDetail'
 import SimpleReservations from './pages/SimpleReservations'
 import SimpleReservationDetail from './pages/SimpleReservationDetail'
+import BreakfastReservations from './pages/BreakfastReservations'
+import BreakfastReservationDetail from './pages/BreakfastReservationDetail'
 import Floors from './pages/Floors'
 import Rows from './pages/Rows'
 import Tables from './pages/Tables'
 import ReservationSettings from './pages/ReservationSettings'
+import BreakfastSettings from './pages/BreakfastSettings'
 import Gallery from './pages/Gallery'
 import CateringPacks from './pages/CateringPacks'
 import Offers from './pages/Offers'
@@ -56,12 +59,15 @@ function App() {
             <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="simple-reservations" element={<SimpleReservations />} />
             <Route path="simple-reservations/:id" element={<SimpleReservationDetail />} />
+            <Route path="breakfast-reservations" element={<BreakfastReservations />} />
+            <Route path="breakfast-reservations/:id" element={<BreakfastReservationDetail />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reservations/:id" element={<ReservationDetail />} />
             <Route path="floors" element={<Floors />} />
             <Route path="rows" element={<Rows />} />
             <Route path="tables" element={<Tables />} />
             <Route path="reservation-settings" element={<ReservationSettings />} />
+            <Route path="breakfast-settings" element={<BreakfastSettings />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />
             <Route path="discounts" element={<Discounts />} />
             <Route path="menu-categories" element={<MenuCategories />} />

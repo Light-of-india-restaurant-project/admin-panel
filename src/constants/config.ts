@@ -20,6 +20,8 @@ export const QUERY_KEYS = {
   tables: 'tables',
   reservations: 'reservations',
   simpleReservations: 'simpleReservations',
+  breakfastReservations: 'breakfastReservations',
   restaurantSettings: 'restaurantSettings',
+  breakfastSettings: 'breakfastSettings',
   offers: 'offers',
 } as const
