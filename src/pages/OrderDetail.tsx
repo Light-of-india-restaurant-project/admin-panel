@@ -179,6 +179,14 @@ export default function OrderDetail() {
     }
   }
 
+  const formatPickupTime = (pickupTime: string): string => {
+    const pickupDate = new Date(pickupTime)
+    if (Number.isNaN(pickupDate.getTime())) {
+      return pickupTime
+    }
+    return format(pickupDate, "d MMMM yyyy 'at' HH:mm a")
+  }
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -468,7 +476,7 @@ export default function OrderDetail() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 uppercase font-medium">Pickup Time</p>
-                    <p className="text-gray-900 font-medium">{order.pickupTime}</p>
+                    <p className="text-gray-900 font-medium">{formatPickupTime(order.pickupTime)}</p>
                   </div>
                 </div>
               )}
