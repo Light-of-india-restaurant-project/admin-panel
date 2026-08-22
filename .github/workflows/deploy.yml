@@ -18,16 +18,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Build
         env:
           VITE_API_BASE_URL: https://api.lightofindia.nl/api/v1
-        run: pnpm build
+        run: npm run build
 
       - name: Prepare remote dir
         uses: appleboy/ssh-action@v1.0.3
