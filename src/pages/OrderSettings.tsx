@@ -8,6 +8,19 @@ interface RestaurantClosedDate {
   reason: string
 }
 
+type OrderClosureMode = 'pickup' | 'delivery' | 'both'
+
+interface OrderClosedDate {
+  date: string
+  reason: string
+  mode: OrderClosureMode
+}
+
+interface OrderWeeklyClosure {
+  day: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+  mode: OrderClosureMode
+}
+
 interface OrderSettingsData {
   deliveryEnabled: boolean
   pickupEnabled: boolean
@@ -17,6 +30,8 @@ interface OrderSettingsData {
   minimumOrderAmount: number
   deliveryCharge: number
   restaurantClosedDates?: RestaurantClosedDate[]
+  orderClosedDates?: OrderClosedDate[]
+  orderWeeklyClosures?: OrderWeeklyClosure[]
 }
 
 export default function OrderSettings() {
@@ -35,10 +50,17 @@ export default function OrderSettings() {
   const [draftMinimum, setDraftMinimum] = useState(0)
   const [draftDeliveryCharge, setDraftDeliveryCharge] = useState(0)
   const [restaurantClosedDates, setRestaurantClosedDates] = useState<RestaurantClosedDate[]>([])
+  const [orderClosedDates, setOrderClosedDates] = useState<OrderClosedDate[]>([])
+  const [orderWeeklyClosures, setOrderWeeklyClosures] = useState<OrderWeeklyClosure[]>([])
   const [closureModalOpen, setClosureModalOpen] = useState(false)
   const [selectedClosureDate, setSelectedClosureDate] = useState<string | null>(null)
   const [closureReasonInput, setClosureReasonInput] = useState('')
   const [closureReasonError, setClosureReasonError] = useState<string | null>(null)
+  const [orderClosureModalOpen, setOrderClosureModalOpen] = useState(false)
+  const [selectedOrderClosureDate, setSelectedOrderClosureDate] = useState<string | null>(null)
+  const [orderClosureReasonInput, setOrderClosureReasonInput] = useState('')
+  const [orderClosureReasonError, setOrderClosureReasonError] = useState<string | null>(null)
+  const [orderClosureModeInput, setOrderClosureModeInput] = useState<OrderClosureMode>('both')
 
   useEffect(() => {
     fetchSettings()
@@ -63,10 +85,14 @@ export default function OrderSettings() {
         minimumOrderAmount: res.data.minimumOrderAmount ?? 0,
         deliveryCharge: res.data.deliveryCharge ?? 0,
         restaurantClosedDates: res.data.restaurantClosedDates ?? [],
+        orderClosedDates: res.data.orderClosedDates ?? [],
+        orderWeeklyClosures: res.data.orderWeeklyClosures ?? [],
       })
       setDraftMinimum(res.data.minimumOrderAmount ?? 0)
       setDraftDeliveryCharge(res.data.deliveryCharge ?? 0)
       setRestaurantClosedDates(res.data.restaurantClosedDates ?? [])
+      setOrderClosedDates(res.data.orderClosedDates ?? [])
+      setOrderWeeklyClosures(res.data.orderWeeklyClosures ?? [])
     } catch (err) {
       console.error('Failed to fetch order settings:', err)
     } finally {
@@ -161,6 +187,38 @@ export default function OrderSettings() {
     return map
   }, [restaurantClosedDates])
 
+  const orderClosureByDate = useMemo(() => {
+    const map = new Map<string, { reason: string; mode: OrderClosureMode }>()
+    orderClosedDates.forEach((entry) => {
+      const key = toDateKey(new Date(entry.date))
+      map.set(key, { reason: entry.reason, mode: entry.mode })
+    })
+    return map
+  }, [orderClosedDates])
+
+  const orderWeeklyClosureByDay = useMemo(() => {
+    const map = new Map<OrderWeeklyClosure['day'], OrderClosureMode>()
+    orderWeeklyClosures.forEach((entry) => {
+      map.set(entry.day, entry.mode)
+    })
+    return map
+  }, [orderWeeklyClosures])
+
+  const orderedWeekdays: Array<{ key: OrderWeeklyClosure['day']; label: string }> = [
+    { key: 'sunday', label: 'Sunday' },
+    { key: 'monday', label: 'Monday' },
+    { key: 'tuesday', label: 'Tuesday' },
+    { key: 'wednesday', label: 'Wednesday' },
+    { key: 'thursday', label: 'Thursday' },
+    { key: 'friday', label: 'Friday' },
+    { key: 'saturday', label: 'Saturday' },
+  ]
+
+  const modeLabel = (mode: OrderClosureMode): string => {
+    if (mode === 'both') return 'Pickup + Delivery'
+    return mode === 'pickup' ? 'Pickup' : 'Delivery'
+  }
+
   const calendarDates = useMemo(() => {
     const result: Date[] = []
     const start = new Date()
@@ -184,6 +242,29 @@ export default function OrderSettings() {
       setNotification({ type: 'success', message: 'Restaurant closure dates saved' })
     } catch {
       setNotification({ type: 'error', message: 'Failed to save restaurant closure dates.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveOrderClosureSettings = async (
+    nextOrderClosedDates: OrderClosedDate[],
+    nextOrderWeeklyClosures: OrderWeeklyClosure[],
+  ) => {
+    setSaving(true)
+    try {
+      await patch({
+        url: 'reservations/admin/settings/order-settings',
+        body: {
+          orderClosedDates: nextOrderClosedDates,
+          orderWeeklyClosures: nextOrderWeeklyClosures,
+        },
+      })
+      setOrderClosedDates(nextOrderClosedDates)
+      setOrderWeeklyClosures(nextOrderWeeklyClosures)
+      setNotification({ type: 'success', message: 'Order closure rules saved' })
+    } catch {
+      setNotification({ type: 'error', message: 'Failed to save order closure rules.' })
     } finally {
       setSaving(false)
     }
@@ -228,6 +309,63 @@ export default function OrderSettings() {
     setClosureReasonError(null)
 
     await saveRestaurantClosedDates(nextData)
+  }
+
+  const handleOrderClosureDateClick = async (date: Date) => {
+    const dateKey = toDateKey(date)
+
+    if (dateKey < todayKey) {
+      return
+    }
+
+    if (orderClosureByDate.has(dateKey)) {
+      const nextDates = orderClosedDates.filter((entry) => toDateKey(new Date(entry.date)) !== dateKey)
+      await saveOrderClosureSettings(nextDates, orderWeeklyClosures)
+      return
+    }
+
+    setSelectedOrderClosureDate(dateKey)
+    setOrderClosureReasonInput('')
+    setOrderClosureReasonError(null)
+    setOrderClosureModeInput('both')
+    setOrderClosureModalOpen(true)
+  }
+
+  const handleSaveOrderClosureDate = async () => {
+    const reason = orderClosureReasonInput.trim()
+    if (!selectedOrderClosureDate) return
+
+    if (!reason) {
+      setOrderClosureReasonError('Reason is required')
+      return
+    }
+
+    const nextDates: OrderClosedDate[] = [
+      ...orderClosedDates.filter((entry) => toDateKey(new Date(entry.date)) !== selectedOrderClosureDate),
+      { date: selectedOrderClosureDate, reason, mode: orderClosureModeInput },
+    ]
+
+    setOrderClosureModalOpen(false)
+    setSelectedOrderClosureDate(null)
+    setOrderClosureReasonInput('')
+    setOrderClosureReasonError(null)
+    setOrderClosureModeInput('both')
+
+    await saveOrderClosureSettings(nextDates, orderWeeklyClosures)
+  }
+
+  const handleWeeklyClosureChange = async (
+    day: OrderWeeklyClosure['day'],
+    mode: OrderClosureMode | 'open',
+  ) => {
+    const nextWeekly = mode === 'open'
+      ? orderWeeklyClosures.filter((entry) => entry.day !== day)
+      : [
+        ...orderWeeklyClosures.filter((entry) => entry.day !== day),
+        { day, mode },
+      ]
+
+    await saveOrderClosureSettings(orderClosedDates, nextWeekly)
   }
 
   if (loading) {
@@ -489,6 +627,94 @@ export default function OrderSettings() {
         </div>
       </div>
 
+      {/* Order-only Closure Calendar */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Order-only Closed Dates</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            Close orders for a date without affecting reservations. Choose pickup, delivery, or both.
+          </p>
+        </div>
+
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4 text-sm text-gray-600">
+            <CalendarDays className="h-4 w-4" />
+            <span>Click a date to add order-only closure. Click again to reopen.</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+            {calendarDates.map((date) => {
+              const dateKey = toDateKey(date)
+              const isPast = dateKey < todayKey
+              const closure = orderClosureByDate.get(dateKey)
+              const isClosed = !!closure
+
+              return (
+                <button
+                  key={`order-${dateKey}`}
+                  type="button"
+                  onClick={() => handleOrderClosureDateClick(date)}
+                  disabled={isPast || saving}
+                  className={`p-2 rounded border text-left transition-colors ${
+                    isPast
+                      ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                      : isClosed
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
+                      : 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'
+                  }`}
+                  title={isClosed ? `${modeLabel(closure.mode)} - ${closure.reason}` : undefined}
+                >
+                  <p className="text-xs font-semibold">
+                    {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-[11px] opacity-80 mt-1">
+                    {isPast ? 'Past' : isClosed ? modeLabel(closure.mode) : 'Open'}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-4 text-xs mt-4 flex-wrap">
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-100 border border-green-200" /> Open</span>
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" /> Order-only closed</span>
+            <span className="inline-flex items-center gap-2"><span className="w-3 h-3 rounded bg-gray-100 border border-gray-200" /> Past date (read-only)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Weekly Order Closures */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Weekly Order Closures</h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            Set recurring closures by weekday for pickup, delivery, or both.
+          </p>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-3">
+          {orderedWeekdays.map((day) => {
+            const selected = orderWeeklyClosureByDay.get(day.key) || 'open'
+            return (
+              <div key={day.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="font-medium text-sm text-gray-900">{day.label}</p>
+                <select
+                  value={selected}
+                  onChange={(e) => handleWeeklyClosureChange(day.key, e.target.value as OrderClosureMode | 'open')}
+                  disabled={saving}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  <option value="open">Open</option>
+                  <option value="pickup">Close Pickup</option>
+                  <option value="delivery">Close Delivery</option>
+                  <option value="both">Close Pickup + Delivery</option>
+                </select>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Restaurant Closure Calendar */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
         <div className="border-b border-gray-200 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
@@ -593,6 +819,96 @@ export default function OrderSettings() {
               onClick={handleSaveClosureReason}
             >
               Save Closed Date
+            </button>
+          </div>
+        </div>
+      </FormModal>
+
+      <FormModal
+        isOpen={orderClosureModalOpen}
+        onClose={() => {
+          setOrderClosureModalOpen(false)
+          setSelectedOrderClosureDate(null)
+          setOrderClosureReasonInput('')
+          setOrderClosureReasonError(null)
+          setOrderClosureModeInput('both')
+        }}
+        title="Order-only Closure"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {selectedOrderClosureDate ? `Closing orders on: ${selectedOrderClosureDate}` : ''}
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">Order Type *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setOrderClosureModeInput('pickup')}
+                className={`px-3 py-2 rounded-lg border text-sm ${
+                  orderClosureModeInput === 'pickup' ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                Pickup
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderClosureModeInput('delivery')}
+                className={`px-3 py-2 rounded-lg border text-sm ${
+                  orderClosureModeInput === 'delivery' ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                Delivery
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderClosureModeInput('both')}
+                className={`px-3 py-2 rounded-lg border text-sm ${
+                  orderClosureModeInput === 'both' ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                Both
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">Reason *</label>
+            <textarea
+              value={orderClosureReasonInput}
+              onChange={(e) => {
+                setOrderClosureReasonInput(e.target.value)
+                if (orderClosureReasonError) setOrderClosureReasonError(null)
+              }}
+              rows={4}
+              maxLength={300}
+              placeholder="Example: Kitchen maintenance"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {orderClosureReasonError && <p className="text-xs text-red-600 mt-1">{orderClosureReasonError}</p>}
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+              onClick={() => {
+                setOrderClosureModalOpen(false)
+                setSelectedOrderClosureDate(null)
+                setOrderClosureReasonInput('')
+                setOrderClosureReasonError(null)
+                setOrderClosureModeInput('both')
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+              onClick={handleSaveOrderClosureDate}
+            >
+              Save Order Closure
             </button>
           </div>
         </div>
