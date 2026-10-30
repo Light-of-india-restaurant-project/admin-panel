@@ -112,7 +112,14 @@ export default function Layout() {
 
   // Auto-expand group when navigating to child route
   useEffect(() => {
-    const reservationRoutes = ['/simple-reservations', '/breakfast-reservations', '/reservation-settings', '/breakfast-settings']
+    const reservationRoutes = [
+      '/simple-reservations',
+      '/breakfast-reservations',
+      '/event-reservations',
+      '/reservation-settings',
+      '/breakfast-settings',
+      '/event-settings',
+    ]
     if (reservationRoutes.some(route => location.pathname.startsWith(route))) {
       setExpandedGroups(prev => prev.includes('Reservations') ? prev : [...prev, 'Reservations'])
     }
@@ -140,8 +147,10 @@ export default function Layout() {
       children: [
         { to: '/simple-reservations', icon: CalendarDays, label: 'Reservations' },
         { to: '/breakfast-reservations', icon: CalendarDays, label: 'Breakfast Reservations' },
+        { to: '/event-reservations', icon: CalendarDays, label: 'Upcoming Events' },
         { to: '/reservation-settings', icon: Settings, label: 'Settings' },
         { to: '/breakfast-settings', icon: Settings, label: 'Breakfast Settings' },
+        { to: '/event-settings', icon: Settings, label: 'Event Settings' },
       ]
     },
     { to: '/delivery-zones', icon: MapPin, label: 'Delivery Zones' },

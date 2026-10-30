@@ -14,6 +14,8 @@ import SimpleReservations from './pages/SimpleReservations'
 import SimpleReservationDetail from './pages/SimpleReservationDetail'
 import BreakfastReservations from './pages/BreakfastReservations'
 import BreakfastReservationDetail from './pages/BreakfastReservationDetail'
+import EventReservations from './pages/EventReservations'
+import EventReservationDetail from './pages/EventReservationDetail'
 import Floors from './pages/Floors'
 import Rows from './pages/Rows'
 import Tables from './pages/Tables'
@@ -23,6 +25,7 @@ import Gallery from './pages/Gallery'
 import CateringPacks from './pages/CateringPacks'
 import Offers from './pages/Offers'
 import OrderSettings from './pages/OrderSettings'
+import EventSettings from './pages/EventSettings'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -61,6 +64,8 @@ function App() {
             <Route path="simple-reservations/:id" element={<SimpleReservationDetail />} />
             <Route path="breakfast-reservations" element={<BreakfastReservations />} />
             <Route path="breakfast-reservations/:id" element={<BreakfastReservationDetail />} />
+            <Route path="event-reservations" element={<EventReservations />} />
+            <Route path="event-reservations/:id" element={<EventReservationDetail />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reservations/:id" element={<ReservationDetail />} />
             <Route path="floors" element={<Floors />} />
@@ -68,6 +73,7 @@ function App() {
             <Route path="tables" element={<Tables />} />
             <Route path="reservation-settings" element={<ReservationSettings />} />
             <Route path="breakfast-settings" element={<BreakfastSettings />} />
+            <Route path="event-settings" element={<EventSettings />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />
             <Route path="discounts" element={<Discounts />} />
             <Route path="menu-categories" element={<MenuCategories />} />
