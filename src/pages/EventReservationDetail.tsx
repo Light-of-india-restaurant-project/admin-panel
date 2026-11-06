@@ -40,7 +40,7 @@ export default function EventReservationDetail() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/event-reservations')} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+        <button onClick={() => navigate('/upcoming-events/reservations')} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Event Reservation Detail</h1>
@@ -61,6 +61,7 @@ export default function EventReservationDetail() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment & Status</h2>
           <div className="space-y-3 text-gray-700">
+            <div><span className="font-medium">Event:</span> {reservation.eventTitle || 'Primary Event'}</div>
             <div><span className="font-medium">Amount:</span> {reservation.currency} {reservation.amountPaid.toFixed(2)}</div>
             <div><span className="font-medium">Payment Status:</span> {reservation.paymentStatus}</div>
             <div><span className="font-medium">Payment ID:</span> {reservation.paymentId}</div>

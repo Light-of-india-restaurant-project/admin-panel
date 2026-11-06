@@ -50,7 +50,7 @@ export default function Layout() {
   // Sidebar states
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Reservations'])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Reservations', 'Upcoming Events'])
   
   // Unvisited order count
   const [unvisitedCount, setUnvisitedCount] = useState(0)
@@ -115,13 +115,23 @@ export default function Layout() {
     const reservationRoutes = [
       '/simple-reservations',
       '/breakfast-reservations',
-      '/event-reservations',
       '/reservation-settings',
       '/breakfast-settings',
+    ]
+
+    const upcomingEventRoutes = [
+      '/upcoming-events/reservations',
+      '/upcoming-events/settings',
+      '/event-reservations',
       '/event-settings',
     ]
+
     if (reservationRoutes.some(route => location.pathname.startsWith(route))) {
       setExpandedGroups(prev => prev.includes('Reservations') ? prev : [...prev, 'Reservations'])
+    }
+
+    if (upcomingEventRoutes.some(route => location.pathname.startsWith(route))) {
+      setExpandedGroups(prev => prev.includes('Upcoming Events') ? prev : [...prev, 'Upcoming Events'])
     }
   }, [location.pathname])
 
@@ -147,10 +157,16 @@ export default function Layout() {
       children: [
         { to: '/simple-reservations', icon: CalendarDays, label: 'Reservations' },
         { to: '/breakfast-reservations', icon: CalendarDays, label: 'Breakfast Reservations' },
-        { to: '/event-reservations', icon: CalendarDays, label: 'Upcoming Events' },
         { to: '/reservation-settings', icon: Settings, label: 'Settings' },
         { to: '/breakfast-settings', icon: Settings, label: 'Breakfast Settings' },
-        { to: '/event-settings', icon: Settings, label: 'Event Settings' },
+      ]
+    },
+    {
+      icon: CalendarDays,
+      label: 'Upcoming Events',
+      children: [
+        { to: '/upcoming-events/reservations', icon: ClipboardList, label: 'Reservations' },
+        { to: '/upcoming-events/settings', icon: Settings, label: 'Event Settings' },
       ]
     },
     { to: '/delivery-zones', icon: MapPin, label: 'Delivery Zones' },

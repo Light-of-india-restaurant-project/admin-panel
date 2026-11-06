@@ -51,6 +51,7 @@ export default function EventSettings() {
   const [closeReason, setCloseReason] = useState('')
   const [dateToClose, setDateToClose] = useState<string | null>(null)
   const [dateRuleError, setDateRuleError] = useState<string | null>(null)
+  const [activeEventTab, setActiveEventTab] = useState<'first' | 'second'>('first')
 
   useEffect(() => {
     if (!data?.data) return
@@ -63,6 +64,25 @@ export default function EventSettings() {
       subtitleNl: settings.subtitleNl,
       descriptionEn: settings.descriptionEn,
       descriptionNl: settings.descriptionNl,
+      secondaryEventEnabled: settings.secondaryEventEnabled,
+      secondaryTitleEn: settings.secondaryTitleEn,
+      secondaryTitleNl: settings.secondaryTitleNl,
+      secondarySubtitleEn: settings.secondarySubtitleEn,
+      secondarySubtitleNl: settings.secondarySubtitleNl,
+      secondaryDescriptionEn: settings.secondaryDescriptionEn,
+      secondaryDescriptionNl: settings.secondaryDescriptionNl,
+      secondaryDateLabelEn: settings.secondaryDateLabelEn,
+      secondaryDateLabelNl: settings.secondaryDateLabelNl,
+      secondaryTimeEn: settings.secondaryTimeEn,
+      secondaryTimeNl: settings.secondaryTimeNl,
+      secondaryLocationEn: settings.secondaryLocationEn,
+      secondaryLocationNl: settings.secondaryLocationNl,
+      secondaryHost: settings.secondaryHost,
+      secondaryContactPhonePrimary: settings.secondaryContactPhonePrimary,
+      secondaryContactPhoneSecondary: settings.secondaryContactPhoneSecondary,
+      secondaryContactEmail: settings.secondaryContactEmail,
+      secondaryPricePerPerson: settings.secondaryPricePerPerson,
+      secondaryCurrency: settings.secondaryCurrency,
       timeEn: settings.timeEn,
       timeNl: settings.timeNl,
       locationEn: settings.locationEn,
@@ -97,8 +117,13 @@ export default function EventSettings() {
   }
 
   const handleSave = async () => {
+    const timeEn = String(formData.timeEn || '').trim()
+    const timeNl = String(formData.timeNl || '').trim()
+
     await updateMutation.mutateAsync({
       ...formData,
+      secondaryTimeEn: timeEn,
+      secondaryTimeNl: timeNl,
       skippedDates: Array.from(new Set([...splitDateText(skippedText), ...skippedDates])),
       openDates: Array.from(new Set([...splitDateText(openText), ...openDates])),
       restaurantClosedDates,
@@ -135,6 +160,8 @@ export default function EventSettings() {
 
   const eventDay = ((formData.eventDay as string) || 'sunday').toLowerCase()
   const maxAdvanceDays = Number(formData.maxAdvanceDays || 90)
+  const firstEventTabLabel = ((formData.titleEn as string) || '').trim() || 'First Event'
+  const secondEventTabLabel = ((formData.secondaryTitleEn as string) || '').trim() || 'Second Event'
 
   const allDates = Array.from({ length: maxAdvanceDays }, (_, idx) => {
     const date = new Date()
@@ -244,6 +271,34 @@ export default function EventSettings() {
           </div>
         )}
 
+        <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveEventTab('first')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              activeEventTab === 'first'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {firstEventTabLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveEventTab('second')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              activeEventTab === 'second'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {secondEventTabLabel}
+          </button>
+        </div>
+
+        {activeEventTab === 'first' && (
+          <>
+
         <div className="border-b border-gray-200 pb-3">
           <h2 className="text-lg font-semibold text-gray-900">Event Content</h2>
           <p className="text-sm text-gray-500 mt-1">Edit event title and description shown on the website.</p>
@@ -314,6 +369,215 @@ export default function EventSettings() {
           </label>
         </div>
 
+          </>
+        )}
+
+        {activeEventTab === 'second' && (
+          <>
+
+        <div className="border-b border-gray-200 pb-3">
+          <h2 className="text-lg font-semibold text-gray-900">{secondEventTabLabel} Details</h2>
+          <p className="text-sm text-gray-500 mt-1">Edit title, content, schedule, contact, and pricing for this event.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Event Visibility
+            <select
+              value={String((formData.secondaryEventEnabled as boolean) ?? false)}
+              onChange={(e) => handleChange('secondaryEventEnabled', e.target.value === 'true')}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="true">Show</option>
+              <option value="false">Hide</option>
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Date Label (EN)
+            <input
+              value={(formData.secondaryDateLabelEn as string) || ''}
+              onChange={(e) => handleChange('secondaryDateLabelEn', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="29 November"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Date Label (NL)
+            <input
+              value={(formData.secondaryDateLabelNl as string) || ''}
+              onChange={(e) => handleChange('secondaryDateLabelNl', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="29 november"
+            />
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Title (EN)
+            <input
+              value={(formData.secondaryTitleEn as string) || ''}
+              onChange={(e) => handleChange('secondaryTitleEn', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="DIAMONDS 2000"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Title (NL)
+            <input
+              value={(formData.secondaryTitleNl as string) || ''}
+              onChange={(e) => handleChange('secondaryTitleNl', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="DIAMONDS 2000"
+            />
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Subtitle (EN)
+            <input
+              value={(formData.secondarySubtitleEn as string) || ''}
+              onChange={(e) => handleChange('secondarySubtitleEn', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Live Hindustani Music Evening"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Subtitle (NL)
+            <input
+              value={(formData.secondarySubtitleNl as string) || ''}
+              onChange={(e) => handleChange('secondarySubtitleNl', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Live Hindustaanse Muziekavond"
+            />
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Description (EN)
+            <textarea
+              value={(formData.secondaryDescriptionEn as string) || ''}
+              onChange={(e) => handleChange('secondaryDescriptionEn', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              rows={4}
+              placeholder="Event description in English"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Description (NL)
+            <textarea
+              value={(formData.secondaryDescriptionNl as string) || ''}
+              onChange={(e) => handleChange('secondaryDescriptionNl', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              rows={4}
+              placeholder="Event description in Dutch"
+            />
+          </label>
+        </div>
+
+        <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
+          <p className="text-sm font-semibold text-blue-900">Timings</p>
+          <p className="text-sm text-blue-800 mt-1">
+            This event automatically uses the same timings as the Dinner event.
+          </p>
+          <div className="mt-2 text-sm text-blue-900">
+            <div><span className="font-medium">EN:</span> {(formData.timeEn as string) || '-'}</div>
+            <div><span className="font-medium">NL:</span> {(formData.timeNl as string) || '-'}</div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Location (EN)
+            <input
+              value={(formData.secondaryLocationEn as string) || ''}
+              onChange={(e) => handleChange('secondaryLocationEn', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Location (EN)"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Location (NL)
+            <input
+              value={(formData.secondaryLocationNl as string) || ''}
+              onChange={(e) => handleChange('secondaryLocationNl', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Location (NL)"
+            />
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Host
+            <input
+              value={(formData.secondaryHost as string) || ''}
+              onChange={(e) => handleChange('secondaryHost', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Host"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Primary Phone
+            <input
+              value={(formData.secondaryContactPhonePrimary as string) || ''}
+              onChange={(e) => handleChange('secondaryContactPhonePrimary', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Primary phone"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Alternate Phone
+            <input
+              value={(formData.secondaryContactPhoneSecondary as string) || ''}
+              onChange={(e) => handleChange('secondaryContactPhoneSecondary', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Secondary phone"
+            />
+          </label>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Contact Email
+            <input
+              type="email"
+              value={(formData.secondaryContactEmail as string) || ''}
+              onChange={(e) => handleChange('secondaryContactEmail', e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Contact email"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Price Per Person
+            <input
+              type="number"
+              step="0.01"
+              min={0.01}
+              value={(formData.secondaryPricePerPerson as number) || 0}
+              onChange={(e) => handleChange('secondaryPricePerPerson', Number(e.target.value))}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Price per person"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Currency
+            <input
+              value={(formData.secondaryCurrency as string) || 'EUR'}
+              onChange={(e) => handleChange('secondaryCurrency', e.target.value.toUpperCase())}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="EUR"
+            />
+          </label>
+        </div>
+
+          </>
+        )}
+
+        {activeEventTab === 'first' && (
+          <>
         <div className="border-b border-gray-200 pb-3 pt-2">
           <h2 className="text-lg font-semibold text-gray-900">Timing & Location</h2>
           <p className="text-sm text-gray-500 mt-1">Set event schedule and where it takes place.</p>
@@ -482,6 +746,8 @@ export default function EventSettings() {
             />
           </label>
         </div>
+          </>
+        )}
 
         <div className="border-b border-gray-200 pb-3 pt-2">
           <h2 className="text-lg font-semibold text-gray-900">Date Rules</h2>

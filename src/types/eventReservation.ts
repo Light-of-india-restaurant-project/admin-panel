@@ -2,6 +2,8 @@ export type EventReservationStatus = 'confirmed' | 'cancelled'
 
 export interface EventReservation {
   _id: string
+  eventKey?: 'primary' | 'secondary'
+  eventTitle?: string
   name: string
   email: string
   contactNumber: string
@@ -28,6 +30,25 @@ export interface EventSettings {
   subtitleNl: string
   descriptionEn: string
   descriptionNl: string
+  secondaryEventEnabled: boolean
+  secondaryTitleEn: string
+  secondaryTitleNl: string
+  secondarySubtitleEn: string
+  secondarySubtitleNl: string
+  secondaryDescriptionEn: string
+  secondaryDescriptionNl: string
+  secondaryDateLabelEn: string
+  secondaryDateLabelNl: string
+  secondaryTimeEn: string
+  secondaryTimeNl: string
+  secondaryLocationEn: string
+  secondaryLocationNl: string
+  secondaryHost: string
+  secondaryContactPhonePrimary: string
+  secondaryContactPhoneSecondary: string
+  secondaryContactEmail: string
+  secondaryPricePerPerson: number
+  secondaryCurrency: string
   timeEn: string
   timeNl: string
   locationEn: string
@@ -56,6 +77,7 @@ export interface EventReservationQueryParams {
   limit?: number
   search?: string
   status?: EventReservationStatus
+  eventKey?: 'primary' | 'secondary'
   startDate?: string
   endDate?: string
 }

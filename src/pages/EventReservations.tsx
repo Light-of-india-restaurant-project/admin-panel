@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, ChevronLeft, ChevronRight, Eye, Search } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useGetEventReservations } from '@/hooks/useEventReservations'
+import { useGetEventReservations, useGetEventSettings } from '@/hooks/useEventReservations'
 
 import type { EventReservationStatus } from '@/types/eventReservation'
 
@@ -20,6 +20,7 @@ export default function EventReservations() {
   const [pageSize, setPageSize] = useState(25)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterEventKey, setFilterEventKey] = useState('')
   const [filterDate, setFilterDate] = useState('')
 
   const debouncedSearch = useDebounce(searchQuery, 300)
@@ -30,12 +31,22 @@ export default function EventReservations() {
       limit: pageSize,
       ...(debouncedSearch && { search: debouncedSearch }),
       ...(filterStatus && { status: filterStatus as EventReservationStatus }),
+      ...(filterEventKey && { eventKey: filterEventKey as 'primary' | 'secondary' }),
       ...(filterDate && { startDate: filterDate, endDate: filterDate }),
     }),
-    [page, pageSize, debouncedSearch, filterStatus, filterDate],
+    [page, pageSize, debouncedSearch, filterStatus, filterEventKey, filterDate],
   )
 
   const { data, isLoading } = useGetEventReservations(queryParams)
+  const { data: eventSettingsData } = useGetEventSettings()
+
+  const eventOptions = useMemo(() => {
+    const settings = eventSettingsData?.data
+    return [
+      { value: 'primary', label: settings?.titleEn || 'Primary Event' },
+      { value: 'secondary', label: settings?.secondaryTitleEn || 'Secondary Event' },
+    ]
+  }, [eventSettingsData])
 
   const reservations = data?.data || []
   const total = data?.total || 0
@@ -86,6 +97,21 @@ export default function EventReservations() {
               </option>
             ))}
           </select>
+          <select
+            value={filterEventKey}
+            onChange={(e) => {
+              setFilterEventKey(e.target.value)
+              setPage(1)
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">All Events</option>
+            {eventOptions.map((event) => (
+              <option key={event.value} value={event.value}>
+                {event.label}
+              </option>
+            ))}
+          </select>
           <input
             type="date"
             value={filterDate}
@@ -109,6 +135,7 @@ export default function EventReservations() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
@@ -125,6 +152,7 @@ export default function EventReservations() {
                       <div className="text-sm text-gray-500">{reservation.email}</div>
                       <div className="text-sm text-gray-500">{reservation.contactNumber}</div>
                     </td>
+                    <td className="px-4 py-4 text-gray-900">{reservation.eventTitle || 'Primary Event'}</td>
                     <td className="px-4 py-4 text-gray-900">{formatDate(reservation.reservationDate)}</td>
                     <td className="px-4 py-4 text-gray-900">{reservation.numberOfGuests}</td>
                     <td className="px-4 py-4 text-gray-900">
@@ -147,7 +175,7 @@ export default function EventReservations() {
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-end">
                         <button
-                          onClick={() => navigate(`/event-reservations/${reservation._id}`)}
+                          onClick={() => navigate(`/upcoming-events/reservations/${reservation._id}`)}
                           className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           title="View Details"
                         >

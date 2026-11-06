@@ -64,8 +64,9 @@ function App() {
             <Route path="simple-reservations/:id" element={<SimpleReservationDetail />} />
             <Route path="breakfast-reservations" element={<BreakfastReservations />} />
             <Route path="breakfast-reservations/:id" element={<BreakfastReservationDetail />} />
-            <Route path="event-reservations" element={<EventReservations />} />
-            <Route path="event-reservations/:id" element={<EventReservationDetail />} />
+            <Route path="upcoming-events/reservations" element={<EventReservations />} />
+            <Route path="upcoming-events/reservations/:id" element={<EventReservationDetail />} />
+            <Route path="upcoming-events/settings" element={<EventSettings />} />
             <Route path="reservations" element={<Reservations />} />
             <Route path="reservations/:id" element={<ReservationDetail />} />
             <Route path="floors" element={<Floors />} />
@@ -73,7 +74,9 @@ function App() {
             <Route path="tables" element={<Tables />} />
             <Route path="reservation-settings" element={<ReservationSettings />} />
             <Route path="breakfast-settings" element={<BreakfastSettings />} />
-            <Route path="event-settings" element={<EventSettings />} />
+            <Route path="event-reservations" element={<Navigate to="/upcoming-events/reservations" replace />} />
+            <Route path="event-reservations/:id" element={<Navigate to="/upcoming-events/reservations" replace />} />
+            <Route path="event-settings" element={<Navigate to="/upcoming-events/settings" replace />} />
             <Route path="delivery-zones" element={<DeliveryZones />} />
             <Route path="discounts" element={<Discounts />} />
             <Route path="menu-categories" element={<MenuCategories />} />
