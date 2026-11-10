@@ -132,6 +132,16 @@ export interface RestaurantSettings {
   closedDates: string[]
   openDates: string[]
   restaurantClosedDates: RestaurantClosedDate[]
+  isActive?: boolean
+  paymentMode?: 'online' | 'offline' | 'hybrid'
+  pricePerPerson?: number
+  currency?: string
+  offerTitleEn?: string
+  offerTitleNl?: string
+  offerSubtitleEn?: string
+  offerSubtitleNl?: string
+  highlightItemsEn?: string[]
+  highlightItemsNl?: string[]
   reservationDuration: number
   slotInterval: number
   maxAdvanceDays: number
@@ -146,6 +156,16 @@ export interface RestaurantSettingsFormData {
   closedDates?: string[]
   openDates?: string[]
   restaurantClosedDates?: RestaurantClosedDate[]
+  isActive?: boolean
+  paymentMode?: 'online' | 'offline' | 'hybrid'
+  pricePerPerson?: number
+  currency?: string
+  offerTitleEn?: string
+  offerTitleNl?: string
+  offerSubtitleEn?: string
+  offerSubtitleNl?: string
+  highlightItemsEn?: string[]
+  highlightItemsNl?: string[]
   reservationDuration?: number
   slotInterval?: number
   maxAdvanceDays?: number
@@ -313,6 +333,13 @@ export interface BreakfastReservation {
   numberOfGuests: number
   reservationDate: string
   status: BreakfastReservationStatus
+  paymentMode?: 'online' | 'offline'
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled' | 'pending_offline'
+  paymentId?: string
+  paymentMethod?: string
+  amountPaid?: number
+  currency?: string
+  confirmationCode?: string
   rejectionReason?: string
   cancellationReason?: string
   adminNote?: string

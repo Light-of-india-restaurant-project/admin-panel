@@ -156,9 +156,9 @@ export default function Layout() {
       label: 'Reservations',
       children: [
         { to: '/simple-reservations', icon: CalendarDays, label: 'Reservations' },
-        { to: '/breakfast-reservations', icon: CalendarDays, label: 'Breakfast Reservations' },
+        { to: '/breakfast-reservations', icon: CalendarDays, label: 'Nashta/Brunch Reservations' },
         { to: '/reservation-settings', icon: Settings, label: 'Settings' },
-        { to: '/breakfast-settings', icon: Settings, label: 'Breakfast Settings' },
+        { to: '/breakfast-settings', icon: Settings, label: 'Nashta/Brunch Settings' },
       ]
     },
     {

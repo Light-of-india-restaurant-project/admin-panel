@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Clock, Calendar, Save, CalendarX } from 'lucide-react'
 import {
   useGetBreakfastSettings,
+  useUpdateBreakfastSettings,
   useUpdateBreakfastOperatingHours,
   useUpdateBreakfastReservationSettings,
   useUpdateBreakfastClosedDates,
@@ -30,6 +31,7 @@ const toLocalDateKey = (value: string | Date) => {
 
 export default function BreakfastSettings() {
   const { data, isLoading } = useGetBreakfastSettings()
+  const updateAllSettingsMutation = useUpdateBreakfastSettings()
   const updateHoursMutation = useUpdateBreakfastOperatingHours()
   const updateSettingsMutation = useUpdateBreakfastReservationSettings()
   const updateClosedDatesMutation = useUpdateBreakfastClosedDates()
@@ -42,6 +44,15 @@ export default function BreakfastSettings() {
   const [minGuests, setMinGuests] = useState<number | null>(null)
   const [closedDates, setClosedDates] = useState<string[]>([])
   const [openDates, setOpenDates] = useState<string[]>([])
+  const [isActive, setIsActive] = useState(true)
+  const [pricePerPerson, setPricePerPerson] = useState<number>(14.95)
+  const [currency, setCurrency] = useState('EUR')
+  const [offerTitleEn, setOfferTitleEn] = useState('')
+  const [offerTitleNl, setOfferTitleNl] = useState('')
+  const [offerSubtitleEn, setOfferSubtitleEn] = useState('')
+  const [offerSubtitleNl, setOfferSubtitleNl] = useState('')
+  const [highlightItemsEnText, setHighlightItemsEnText] = useState('')
+  const [highlightItemsNlText, setHighlightItemsNlText] = useState('')
 
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -57,9 +68,24 @@ export default function BreakfastSettings() {
       setMinGuests(data.data.minGuestsPerReservation)
       setClosedDates((data.data.closedDates || []).map((d: string | Date) => toLocalDateKey(d)))
       setOpenDates((data.data.openDates || []).map((d: string | Date) => toLocalDateKey(d)))
+      setIsActive(data.data.isActive ?? true)
+      setPricePerPerson(data.data.pricePerPerson ?? 14.95)
+      setCurrency(data.data.currency ?? 'EUR')
+      setOfferTitleEn(data.data.offerTitleEn ?? '')
+      setOfferTitleNl(data.data.offerTitleNl ?? '')
+      setOfferSubtitleEn(data.data.offerSubtitleEn ?? '')
+      setOfferSubtitleNl(data.data.offerSubtitleNl ?? '')
+      setHighlightItemsEnText((data.data.highlightItemsEn ?? []).join('\n'))
+      setHighlightItemsNlText((data.data.highlightItemsNl ?? []).join('\n'))
       setIsDataLoaded(true)
     }
   }, [data])
+
+  const toLineItems = (value: string): string[] =>
+    value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
 
   const allDates = useMemo(() => {
     if (!maxAdvanceDays || !operatingHours.length) return []
@@ -149,6 +175,30 @@ export default function BreakfastSettings() {
     }
   }
 
+  const handleSaveOfferSettings = async () => {
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await updateAllSettingsMutation.mutateAsync({
+        isActive,
+        paymentMode: 'online',
+        pricePerPerson,
+        currency: currency.trim().toUpperCase(),
+        offerTitleEn: offerTitleEn.trim(),
+        offerTitleNl: offerTitleNl.trim(),
+        offerSubtitleEn: offerSubtitleEn.trim(),
+        offerSubtitleNl: offerSubtitleNl.trim(),
+        highlightItemsEn: toLineItems(highlightItemsEnText),
+        highlightItemsNl: toLineItems(highlightItemsNlText),
+      })
+      setSuccessMessage('Nashta/Brunch offer settings saved successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save nashta/brunch offer settings')
+    }
+  }
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
@@ -168,8 +218,127 @@ export default function BreakfastSettings() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Breakfast Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Configure breakfast hours and booking rules</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nashta/Brunch Settings</h1>
+        <p className="text-sm text-gray-500 mt-1">Configure nashta/brunch offer, payment and booking rules</p>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Nashta/Brunch Offer & Payment</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            Offer is active
+          </label>
+
+          <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700">
+            Payment Mode: Online only
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Price Per Person</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={pricePerPerson}
+              onChange={(e) => setPricePerPerson(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <input
+              type="text"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              maxLength={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Offer Title (EN)</label>
+            <input
+              type="text"
+              value={offerTitleEn}
+              onChange={(e) => setOfferTitleEn(e.target.value)}
+              maxLength={200}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Offer Title (NL)</label>
+            <input
+              type="text"
+              value={offerTitleNl}
+              onChange={(e) => setOfferTitleNl(e.target.value)}
+              maxLength={200}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Offer Subtitle (EN)</label>
+            <textarea
+              value={offerSubtitleEn}
+              onChange={(e) => setOfferSubtitleEn(e.target.value)}
+              rows={2}
+              maxLength={300}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Offer Subtitle (NL)</label>
+            <textarea
+              value={offerSubtitleNl}
+              onChange={(e) => setOfferSubtitleNl(e.target.value)}
+              rows={2}
+              maxLength={300}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Highlight Items (EN) - one per line</label>
+            <textarea
+              value={highlightItemsEnText}
+              onChange={(e) => setHighlightItemsEnText(e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Highlight Items (NL) - one per line</label>
+            <textarea
+              value={highlightItemsNlText}
+              onChange={(e) => setHighlightItemsNlText(e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleSaveOfferSettings}
+          disabled={updateAllSettingsMutation.isPending}
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          {updateAllSettingsMutation.isPending ? 'Saving...' : 'Save Nashta/Brunch Offer'}
+        </button>
       </div>
 
       {error && (
@@ -188,10 +357,10 @@ export default function BreakfastSettings() {
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Breakfast Booking Window</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Nashta/Brunch Booking Window</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Set how far in advance customers can make breakfast reservations.
+          Set how far in advance customers can make nashta/brunch reservations.
         </p>
 
         <div className="max-w-xs">
@@ -206,7 +375,7 @@ export default function BreakfastSettings() {
             onChange={(e) => setMaxAdvanceDays(Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
-          <p className="mt-1 text-xs text-gray-500">How far ahead customers can book breakfast</p>
+          <p className="mt-1 text-xs text-gray-500">How far ahead customers can book nashta/brunch</p>
         </div>
 
         <button
@@ -215,17 +384,17 @@ export default function BreakfastSettings() {
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {updateSettingsMutation.isPending ? 'Saving...' : 'Save Breakfast Booking Window'}
+          {updateSettingsMutation.isPending ? 'Saving...' : 'Save Nashta/Brunch Booking Window'}
         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Breakfast Weekly Operating Hours</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Nashta/Brunch Weekly Operating Hours</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Set the regular opening days and times used for breakfast reservations.
+          Set the regular opening days and times used for nashta/brunch reservations.
         </p>
 
         <div className="space-y-3">
@@ -273,14 +442,14 @@ export default function BreakfastSettings() {
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {updateHoursMutation.isPending ? 'Saving...' : 'Save Breakfast Hours'}
+          {updateHoursMutation.isPending ? 'Saving...' : 'Save Nashta/Brunch Hours'}
         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <CalendarX className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Breakfast Specific Date Rules</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Nashta/Brunch Specific Date Rules</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Override weekly schedule for specific dates. Toggle a date to switch it between open and closed.
@@ -319,7 +488,7 @@ export default function BreakfastSettings() {
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {updateClosedDatesMutation.isPending ? 'Saving...' : 'Save Breakfast Date Rules'}
+          {updateClosedDatesMutation.isPending ? 'Saving...' : 'Save Nashta/Brunch Date Rules'}
         </button>
       </div>
     </div>

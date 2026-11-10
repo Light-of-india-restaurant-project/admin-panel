@@ -180,8 +180,8 @@ export default function BreakfastReservations() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Breakfast Reservations</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage breakfast reservation requests from customers</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nashta/Brunch Reservations</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage nashta/brunch reservation requests from customers</p>
         </div>
       </div>
 
@@ -267,9 +267,9 @@ export default function BreakfastReservations() {
         ) : filteredReservations.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No breakfast reservations found</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No nashta/brunch reservations found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchQuery || filterStatus || filterDate ? 'Try adjusting your filters' : 'Breakfast requests will appear here'}
+              {searchQuery || filterStatus || filterDate ? 'Try adjusting your filters' : 'Nashta/brunch requests will appear here'}
             </p>
           </div>
         ) : (
@@ -281,6 +281,7 @@ export default function BreakfastReservations() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -309,6 +310,15 @@ export default function BreakfastReservations() {
                           <div className="flex items-center gap-2 text-sm text-gray-900">
                             <Users className="h-4 w-4 text-gray-400" />
                             {reservation.numberOfGuests} {reservation.numberOfGuests === 1 ? 'guest' : 'guests'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {reservation.paymentMode === 'online' ? 'Online' : 'Pay at restaurant'}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {reservation.currency || 'EUR'} {(reservation.amountPaid || 0).toFixed(2)}
+                            {reservation.paymentStatus ? ` • ${reservation.paymentStatus}` : ''}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -393,7 +403,7 @@ export default function BreakfastReservations() {
 
       <ConfirmModal
         isOpen={cancelModal.isOpen}
-        title="Cancel Breakfast Reservation"
+        title="Cancel Nashta/Brunch Reservation"
         message={`Please provide a reason for cancelling ${cancelModal.reservation?.name || 'this reservation'}.`}
         confirmLabel="Cancel Reservation"
         confirmColor="bg-orange-600 hover:bg-orange-700"

@@ -148,14 +148,14 @@ export default function BreakfastReservationDetail() {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900">Breakfast reservation not found</h3>
+          <h3 className="text-lg font-medium text-gray-900">Nashta/Brunch reservation not found</h3>
           <p className="mt-2 text-gray-500">The reservation you are looking for does not exist.</p>
           <button
             onClick={() => navigate('/breakfast-reservations')}
             className="mt-4 inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to breakfast reservations
+            Back to nashta/brunch reservations
           </button>
         </div>
       </div>
@@ -175,8 +175,8 @@ export default function BreakfastReservationDetail() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Breakfast Reservation Details</h1>
-            <p className="text-sm text-gray-500 mt-1">View and manage breakfast reservation</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nashta/Brunch Reservation Details</h1>
+            <p className="text-sm text-gray-500 mt-1">View and manage nashta/brunch reservation</p>
           </div>
         </div>
 
@@ -247,7 +247,7 @@ export default function BreakfastReservationDetail() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Breakfast Date</p>
+                  <p className="text-sm text-gray-500">Nashta/Brunch Date</p>
                   <p className="font-medium text-gray-900">{formatDate(reservation.reservationDate)}</p>
                 </div>
               </div>
@@ -257,6 +257,32 @@ export default function BreakfastReservationDetail() {
                   <p className="text-sm text-gray-500">Request Submitted</p>
                   <p className="font-medium text-gray-900">{formatDateTime(reservation.createdAt)}</p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Details</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment Mode</span>
+                <span className="font-medium text-gray-900">{reservation.paymentMode === 'online' ? 'Online' : 'Pay at restaurant'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment Status</span>
+                <span className="font-medium text-gray-900">{reservation.paymentStatus || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Amount Paid</span>
+                <span className="font-medium text-gray-900">{reservation.currency || 'EUR'} {(reservation.amountPaid || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment ID</span>
+                <span className="font-mono text-xs text-gray-900">{reservation.paymentId || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Confirmation Code</span>
+                <span className="font-mono text-sm text-gray-900">{reservation.confirmationCode || '-'}</span>
               </div>
             </div>
           </div>
@@ -338,8 +364,8 @@ export default function BreakfastReservationDetail() {
 
       <ConfirmModal
         isOpen={cancelModal.isOpen}
-        title="Cancel Breakfast Reservation"
-        message={`Please provide a reason for cancelling ${reservation.name}'s breakfast reservation.`}
+        title="Cancel Nashta/Brunch Reservation"
+        message={`Please provide a reason for cancelling ${reservation.name}'s nashta/brunch reservation.`}
         confirmLabel="Cancel Reservation"
         confirmColor="bg-orange-600 hover:bg-orange-700"
         onConfirm={handleCancel}
