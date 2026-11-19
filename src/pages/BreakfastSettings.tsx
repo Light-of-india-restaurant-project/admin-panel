@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Clock, Calendar, Save, CalendarX } from 'lucide-react'
 import {
   useGetBreakfastSettings,
@@ -57,17 +57,22 @@ export default function BreakfastSettings() {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isDataLoaded, setIsDataLoaded] = useState(false)
+  const hasInitializedForm = useRef(false)
 
   useEffect(() => {
     if (data?.data) {
+      setClosedDates((data.data.closedDates || []).map((d: string | Date) => toLocalDateKey(d)))
+      setOpenDates((data.data.openDates || []).map((d: string | Date) => toLocalDateKey(d)))
+      setIsDataLoaded(true)
+      // Only seed editable fields once so refetches don't wipe unsaved edits.
+      if (hasInitializedForm.current) return
+      hasInitializedForm.current = true
       setOperatingHours(data.data.operatingHours)
       setReservationDuration(data.data.reservationDuration)
       setSlotInterval(data.data.slotInterval)
       setMaxAdvanceDays(data.data.maxAdvanceDays)
       setMaxGuests(data.data.maxGuestsPerReservation)
       setMinGuests(data.data.minGuestsPerReservation)
-      setClosedDates((data.data.closedDates || []).map((d: string | Date) => toLocalDateKey(d)))
-      setOpenDates((data.data.openDates || []).map((d: string | Date) => toLocalDateKey(d)))
       setIsActive(data.data.isActive ?? true)
       setPricePerPerson(data.data.pricePerPerson ?? 14.95)
       setCurrency(data.data.currency ?? 'EUR')
@@ -77,7 +82,6 @@ export default function BreakfastSettings() {
       setOfferSubtitleNl(data.data.offerSubtitleNl ?? '')
       setHighlightItemsEnText((data.data.highlightItemsEn ?? []).join('\n'))
       setHighlightItemsNlText((data.data.highlightItemsNl ?? []).join('\n'))
-      setIsDataLoaded(true)
     }
   }, [data])
 
@@ -116,15 +120,33 @@ export default function BreakfastSettings() {
     setOperatingHours(prev => prev.map(h => (h.day === day ? { ...h, [field]: value } : h)))
   }
 
-  const handleToggleSpecificDate = (dateStr: string, isOpenByWeek: boolean) => {
-    if (isOpenByWeek) {
-      setClosedDates(prev => (prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr]))
-      setOpenDates(prev => prev.filter(d => d !== dateStr))
-      return
-    }
+  const handleToggleSpecificDate = async (dateStr: string, isOpenByWeek: boolean) => {
+    if (updateClosedDatesMutation.isPending) return
 
-    setOpenDates(prev => (prev.includes(dateStr) ? prev.filter(d => d !== dateStr) : [...prev, dateStr]))
-    setClosedDates(prev => prev.filter(d => d !== dateStr))
+    const prevClosedDates = closedDates
+    const prevOpenDates = openDates
+
+    const nextClosedDates = isOpenByWeek
+      ? (closedDates.includes(dateStr) ? closedDates.filter(d => d !== dateStr) : [...closedDates, dateStr])
+      : closedDates.filter(d => d !== dateStr)
+    const nextOpenDates = isOpenByWeek
+      ? openDates.filter(d => d !== dateStr)
+      : (openDates.includes(dateStr) ? openDates.filter(d => d !== dateStr) : [...openDates, dateStr])
+
+    setClosedDates(nextClosedDates)
+    setOpenDates(nextOpenDates)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await updateClosedDatesMutation.mutateAsync({ closedDates: nextClosedDates, openDates: nextOpenDates })
+      setSuccessMessage('Breakfast specific date rules saved successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      setClosedDates(prevClosedDates)
+      setOpenDates(prevOpenDates)
+      setError(err instanceof Error ? err.message : 'Failed to save breakfast specific date rules')
+    }
   }
 
   const handleSaveHours = async () => {
@@ -160,18 +182,6 @@ export default function BreakfastSettings() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save breakfast settings')
-    }
-  }
-
-  const handleSaveClosedDates = async () => {
-    setError(null)
-    setSuccessMessage(null)
-    try {
-      await updateClosedDatesMutation.mutateAsync({ closedDates, openDates })
-      setSuccessMessage('Breakfast specific date rules saved successfully')
-      setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save breakfast specific date rules')
     }
   }
 
@@ -452,7 +462,7 @@ export default function BreakfastSettings() {
           <h2 className="text-lg font-semibold text-gray-900">Nashta/Brunch Specific Date Rules</h2>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Override weekly schedule for specific dates. Toggle a date to switch it between open and closed.
+          Override weekly schedule for specific dates. Toggle a date to switch it between open and closed. Changes are saved immediately.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
@@ -464,8 +474,9 @@ export default function BreakfastSettings() {
             return (
               <button
                 key={dateStr}
-                onClick={() => handleToggleSpecificDate(dateStr, isOpenByWeek)}
-                className={`p-3 rounded-lg border text-left transition-colors ${
+                onClick={() => void handleToggleSpecificDate(dateStr, isOpenByWeek)}
+                disabled={updateClosedDatesMutation.isPending}
+                className={`p-3 rounded-lg border text-left transition-colors disabled:cursor-wait ${
                   effectiveOpen
                     ? 'bg-green-50 border-green-200 hover:bg-green-100'
                     : 'bg-red-50 border-red-200 hover:bg-red-100'
@@ -482,14 +493,9 @@ export default function BreakfastSettings() {
           })}
         </div>
 
-        <button
-          onClick={handleSaveClosedDates}
-          disabled={updateClosedDatesMutation.isPending}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          {updateClosedDatesMutation.isPending ? 'Saving...' : 'Save Nashta/Brunch Date Rules'}
-        </button>
+        {updateClosedDatesMutation.isPending && (
+          <p className="mt-4 text-sm text-gray-500">Saving...</p>
+        )}
       </div>
     </div>
   )

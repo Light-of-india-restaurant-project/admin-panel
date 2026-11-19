@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Calendar, Save } from 'lucide-react'
 import { useGetEventSettings, useUpdateEventSettings } from '@/hooks/useEventReservations'
 
@@ -17,11 +17,13 @@ const toDateInput = (value: string | Date) => {
   return `${year}-${month}-${day}`
 }
 
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
 const splitDateText = (value: string): string[] =>
   value
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => DATE_KEY_PATTERN.test(line))
 
 const toLocalDateKey = (value: string | Date) => {
   const date = new Date(value)
@@ -52,11 +54,28 @@ export default function EventSettings() {
   const [dateToClose, setDateToClose] = useState<string | null>(null)
   const [dateRuleError, setDateRuleError] = useState<string | null>(null)
   const [activeEventTab, setActiveEventTab] = useState<'first' | 'second'>('first')
+  const hasInitializedForm = useRef(false)
 
   useEffect(() => {
     if (!data?.data) return
 
     const settings = data.data
+
+    setSkippedText((settings.skippedDates || []).map((date) => toDateInput(date)).join('\n'))
+    setOpenText((settings.openDates || []).map((date) => toDateInput(date)).join('\n'))
+    setSkippedDates((settings.skippedDates || []).map((date) => toLocalDateKey(date)))
+    setOpenDates((settings.openDates || []).map((date) => toLocalDateKey(date)))
+    setRestaurantClosedDates(
+      ((settings.restaurantClosedDates || []) as Array<{ date: string | Date; reason: string }>).map((entry) => ({
+        date: toLocalDateKey(entry.date),
+        reason: entry.reason,
+      })),
+    )
+
+    // Only seed the form once so refetches (after a date click) don't wipe unsaved edits.
+    if (hasInitializedForm.current) return
+    hasInitializedForm.current = true
+
     setFormData({
       titleEn: settings.titleEn,
       titleNl: settings.titleNl,
@@ -99,17 +118,6 @@ export default function EventSettings() {
       maxGuestsPerReservation: settings.maxGuestsPerReservation,
       isActive: settings.isActive,
     })
-
-    setSkippedText((settings.skippedDates || []).map((date) => toDateInput(date)).join('\n'))
-    setOpenText((settings.openDates || []).map((date) => toDateInput(date)).join('\n'))
-    setSkippedDates((settings.skippedDates || []).map((date) => toLocalDateKey(date)))
-    setOpenDates((settings.openDates || []).map((date) => toLocalDateKey(date)))
-    setRestaurantClosedDates(
-      ((settings.restaurantClosedDates || []) as Array<{ date: string | Date; reason: string }>).map((entry) => ({
-        date: toLocalDateKey(entry.date),
-        reason: entry.reason,
-      })),
-    )
   }, [data])
 
   const handleChange = (key: string, value: unknown) => {
@@ -124,8 +132,9 @@ export default function EventSettings() {
       ...formData,
       secondaryTimeEn: timeEn,
       secondaryTimeNl: timeNl,
-      skippedDates: Array.from(new Set([...splitDateText(skippedText), ...skippedDates])),
-      openDates: Array.from(new Set([...splitDateText(openText), ...openDates])),
+      // The text lists are kept in sync with tile clicks, so they are the source of truth here.
+      skippedDates: Array.from(new Set(splitDateText(skippedText))),
+      openDates: Array.from(new Set(splitDateText(openText))),
       restaurantClosedDates,
     })
   }
@@ -143,6 +152,9 @@ export default function EventSettings() {
 
     try {
       await updateMutation.mutateAsync({
+        // Tiles are computed from the current event day / window, so persist them with the date rules.
+        eventDay,
+        maxAdvanceDays,
         skippedDates: nextSkippedDates,
         openDates: nextOpenDates,
         restaurantClosedDates: nextRestaurantClosedDates,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Clock, Calendar, Save, CalendarX } from 'lucide-react'
 import {
   useGetRestaurantSettings,
@@ -48,16 +48,21 @@ export default function ReservationSettings() {
   
   // Track if data has been loaded
   const [isDataLoaded, setIsDataLoaded] = useState(false)
+  const hasInitializedForm = useRef(false)
 
   // Load initial data
   useEffect(() => {
     if (data?.data) {
-      setOperatingHours(data.data.operatingHours)
-      setReservationDuration(data.data.reservationDuration)
-      setSlotInterval(data.data.slotInterval)
-      setMaxAdvanceDays(data.data.maxAdvanceDays)
-      setMaxGuests(data.data.maxGuestsPerReservation)
-      setMinGuests(data.data.minGuestsPerReservation)
+      // Only seed editable fields once so refetches don't wipe unsaved edits.
+      if (!hasInitializedForm.current) {
+        setOperatingHours(data.data.operatingHours)
+        setReservationDuration(data.data.reservationDuration)
+        setSlotInterval(data.data.slotInterval)
+        setMaxAdvanceDays(data.data.maxAdvanceDays)
+        setMaxGuests(data.data.maxGuestsPerReservation)
+        setMinGuests(data.data.minGuestsPerReservation)
+        hasInitializedForm.current = true
+      }
       // Convert dates to local date keys to avoid timezone day-shifts.
       setClosedDates((data.data.closedDates || []).map((d: string | Date) => 
         toLocalDateKey(d)
@@ -101,27 +106,34 @@ export default function ReservationSettings() {
     ))
   }
 
-  const handleToggleSpecificDate = (dateStr: string, isOpenByWeek: boolean) => {
-    if (isOpenByWeek) {
-      setClosedDates(prev =>
-        prev.includes(dateStr)
-          ? prev.filter(d => d !== dateStr)
-          : [...prev, dateStr]
-      )
+  const handleToggleSpecificDate = async (dateStr: string, isOpenByWeek: boolean) => {
+    if (updateClosedDatesMutation.isPending) return
 
-      // Remove stale open override if weekly hours are already open.
-      setOpenDates(prev => prev.filter(d => d !== dateStr))
-      return
+    const prevClosedDates = closedDates
+    const prevOpenDates = openDates
+
+    // Weekly-open dates toggle a "closed" override; weekly-closed dates toggle an "open" override.
+    const nextClosedDates = isOpenByWeek
+      ? (closedDates.includes(dateStr) ? closedDates.filter(d => d !== dateStr) : [...closedDates, dateStr])
+      : closedDates.filter(d => d !== dateStr)
+    const nextOpenDates = isOpenByWeek
+      ? openDates.filter(d => d !== dateStr)
+      : (openDates.includes(dateStr) ? openDates.filter(d => d !== dateStr) : [...openDates, dateStr])
+
+    setClosedDates(nextClosedDates)
+    setOpenDates(nextOpenDates)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      await updateClosedDatesMutation.mutateAsync({ closedDates: nextClosedDates, openDates: nextOpenDates })
+      setSuccessMessage('Specific date rules saved successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      setClosedDates(prevClosedDates)
+      setOpenDates(prevOpenDates)
+      setError(err instanceof Error ? err.message : 'Failed to save specific date rules')
     }
-
-    setOpenDates(prev =>
-      prev.includes(dateStr)
-        ? prev.filter(d => d !== dateStr)
-        : [...prev, dateStr]
-    )
-
-    // A weekly-closed date should not also be marked as specifically closed.
-    setClosedDates(prev => prev.filter(d => d !== dateStr))
   }
 
   const handleSaveHours = async () => {
@@ -157,18 +169,6 @@ export default function ReservationSettings() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
-    }
-  }
-
-  const handleSaveClosedDates = async () => {
-    setError(null)
-    setSuccessMessage(null)
-    try {
-      await updateClosedDatesMutation.mutateAsync({ closedDates, openDates })
-      setSuccessMessage('Specific date rules saved successfully')
-      setTimeout(() => setSuccessMessage(null), 3000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save specific date rules')
     }
   }
 
@@ -324,7 +324,7 @@ export default function ReservationSettings() {
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Click any date to override weekly schedule. Weekly-open dates can be marked closed,
-          and weekly-closed dates can be opened for specific dates.
+          and weekly-closed dates can be opened for specific dates. Changes are saved immediately.
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
@@ -344,8 +344,9 @@ export default function ReservationSettings() {
             return (
               <button
                 key={dateStr}
-                onClick={() => handleToggleSpecificDate(dateStr, isOpenByWeek)}
-                className={`p-2 rounded-lg text-sm text-left transition-all ${tileClasses}`}
+                onClick={() => void handleToggleSpecificDate(dateStr, isOpenByWeek)}
+                disabled={updateClosedDatesMutation.isPending}
+                className={`p-2 rounded-lg text-sm text-left transition-all disabled:cursor-wait ${tileClasses}`}
                 title={
                   isClosedSpecifically 
                     ? 'Click to re-open this date'
@@ -390,14 +391,9 @@ export default function ReservationSettings() {
           </div>
         </div>
 
-        <button
-          onClick={handleSaveClosedDates}
-          disabled={updateClosedDatesMutation.isPending}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          {updateClosedDatesMutation.isPending ? 'Saving...' : 'Save Closed Dates'}
-        </button>
+        {updateClosedDatesMutation.isPending && (
+          <p className="mt-4 text-sm text-gray-500">Saving...</p>
+        )}
       </div>
     </div>
   )
